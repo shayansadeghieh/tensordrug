@@ -1,11 +1,10 @@
 import math
 import warnings
-from functools import reduce
 from collections import defaultdict
-
-import networkx as nx
+from functools import reduce
 
 import matplotlib.pyplot as plt
+import networkx as nx
 import tensorflow as tf
 
 print("HELLO")
