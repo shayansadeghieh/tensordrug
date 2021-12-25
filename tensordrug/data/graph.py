@@ -7,7 +7,10 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import tensorflow as tf
+
 from tensordrug import core, utils
+from tensordrug.data import PerfectHash, Dictionary
+from tensordrug.utils import pretty
 
 
 class Graph(core._MetaContainer):
