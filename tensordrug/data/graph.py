@@ -221,9 +221,9 @@ class Graph(core._MetaContainer):
         last = tf.zeros_like(min_neighbor)
         while not tf.equal(min_neighbor, last):
             last = min_neighbor
-            min_neighbor = scatter_min(min_neighbor[node_out], node_in, dim_size=self.num_node)[0]
+            min_neighbor = tf.compat.v1.scatter_min(min_neighbor[node_out], node_in, shapeo=self.num_node)[0]
         anchor = tf.unique(min_neighbor)
-        num_cc = scatter_add(tf.ones_like(anchor), self.node2graph[anchor])
+        num_cc = tf.tensor_scatter_nd_add(tf.ones_like(anchor), self.node2graph[anchor])
         return self.split(min_neighbor), num_cc
 
     def split(self, node2graph):
@@ -255,8 +255,8 @@ class Graph(core._MetaContainer):
         edge_list = self.edge_list.clone()
         edge_list[:, :2] = mapping[edge_list[:, :2]]
 
-        num_nodes = scatter_add(tf.ones_like(node2graph), node2graph, dim_size=num_graph)
-        num_edges = scatter_add(tf.ones_like(edge2graph[edge_index]), edge2graph[edge_index], dim_size=num_graph)
+        num_nodes = tf.tensor_scatter_nd_add(tf.ones_like(node2graph), node2graph, shape=num_graph)
+        num_edges = tf.tensor_scatter_nd_add(tf.ones_like(edge2graph[edge_index]), edge2graph[edge_index], shape=num_graph)
 
         num_cum_nodes = num_nodes.cumsum(0)
         offsets = (num_cum_nodes - num_nodes)[edge2graph[edge_index]]
@@ -393,8 +393,8 @@ class Graph(core._MetaContainer):
         types = types.repeat_interleave(num_query)
 
         # reorder matched ranges according to the query order
-        ranges = scatter_add(ranges, query_index, dim=0, dim_size=len(pattern))
-        types = scatter_add(types, query_index, dim_size=len(pattern))
+        ranges = tf.tensor_scatter_nd_add(ranges, query_index, dim=0, shape=len(pattern))
+        types = tf.tensor_scatter_nd_add(types, query_index, shape=len(pattern))
         # convert range to indexes
         starts, ends = ranges.t()
         num_match = ends - starts
@@ -638,7 +638,7 @@ class Graph(core._MetaContainer):
         Weighted number of edges containing each node as output.
         Note this is the **in-degree** in graph theory.
         """
-        return scatter_add(self.edge_weight, self.edge_list[:, 1], dim_size=self.num_node)
+        return tf.tensor_scatter_nd_add(self.edge_weight, self.edge_list[:, 1], shape=self.num_node)
 
     @utils.cached_property
     def degree_in(self):
@@ -646,7 +646,7 @@ class Graph(core._MetaContainer):
         Weighted number of edges containing each node as input.
         Note this is the **out-degree** in graph theory.
         """
-        return scatter_add(self.edge_weight, self.edge_list[:, 0], dim_size=self.num_node)
+        return tf.tensor_scatter_nd_add(self.edge_weight, self.edge_list[:, 0], shape=self.num_node)
 
     @property
     def edge_list(self):
@@ -892,8 +892,8 @@ class PackedGraph(Graph):
         graph2graph = graph2graph[graph_index]
 
         num_graph = graph2graph[-1] + 1
-        num_nodes = scatter_add(graph.num_nodes, graph2graph, dim_size=num_graph)
-        num_edges = scatter_add(graph.num_edges, graph2graph, dim_size=num_graph)
+        num_nodes = tf.tensor_scatter_nd_add(graph.num_nodes, graph2graph, shape=num_graph)
+        num_edges = tf.tensor_scatter_nd_add(graph.num_edges, graph2graph, shape=num_graph)
         offsets = self._get_offsets(num_nodes, num_edges)
 
         data_dict, meta_dict = graph.data_mask(exclude="graph")
@@ -1025,13 +1025,13 @@ class PackedGraph(Graph):
         index = tf.concat([index, index[cum_repeats_shifted]])
         value = tf.concat([-num_nodes, self.num_nodes[graph_mask]])
         mask = index < num_node
-        node_index = scatter_add(value[mask], index[mask], dim_size=num_node)
+        node_index = tf.tensor_scatter_nd_add(value[mask], index[mask], shape=num_node)
         node_index = (node_index + 1).cumsum(0) - 1
         index = num_cum_edges - num_edges
         index = tf.concat([index, index[cum_repeats_shifted]])
         value = tf.concat([-num_edges, self.num_edges[graph_mask]])
         mask = index < num_edge
-        edge_index = scatter_add(value[mask], index[mask], dim_size=num_edge)
+        edge_index = tf.tensor_scatter_nd_add(value[mask], index[mask], shape=num_edge)
         edge_index = (edge_index + 1).cumsum(0) - 1
         graph_index = tf.repeat(repeats)
 
@@ -1039,7 +1039,7 @@ class PackedGraph(Graph):
         index = tf.concat([index, index[cum_repeats_shifted]])
         value = tf.concat([num_nodes, -self.num_nodes[graph_mask]])
         mask = index < num_edge
-        pack_offsets = scatter_add(value[mask], index[mask], dim_size=num_edge)
+        pack_offsets = tf.tensor_scatter_nd_add(value[mask], index[mask], shape=num_edge)
         pack_offsets = pack_offsets.cumsum(0)
         edge_list = self.edge_list[edge_index]
         edge_list[:, :2] += pack_offsets.unsqueeze(-1)
@@ -1429,8 +1429,8 @@ def cat(graphs):
     pack_num_edges = tf.stack([graph.num_edge for graph in graphs])
     pack_num_cum_edges = pack_num_edges.cumsum(0)
     graph_index = pack_num_cum_edges < len(edge_list)
-    pack_offsets = scatter_add(pack_num_nodes[graph_index], pack_num_cum_edges[graph_index],
-                               dim_size=len(edge_list))
+    pack_offsets = tf.tensor_scatter_nd_add(pack_num_nodes[graph_index], pack_num_cum_edges[graph_index],
+                               shape=len(edge_list))
     pack_offsets = pack_offsets.cumsum(0)
 
     edge_list[:, :2] += pack_offsets.unsqueeze(-1)
