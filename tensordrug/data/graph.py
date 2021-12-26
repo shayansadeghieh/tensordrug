@@ -9,7 +9,7 @@ import numpy as np
 import tensorflow as tf
 
 from tensordrug import core, utils
-from tensordrug.data import PerfectHash, Dictionary
+from tensordrug.data.dictionary import PerfectHash, Dictionary
 from tensordrug.utils import pretty
 
 

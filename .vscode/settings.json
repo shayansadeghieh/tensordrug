@@ -1,3 +1,4 @@
 {
-  "python.pythonPath": "/usr/local/bin/python3"
+  "python.pythonPath": "/Users/shayansadeghieh/Desktop/tensordrug/tensordug_venv/bin/python",
+  "editor.formatOnSave": true
 }
