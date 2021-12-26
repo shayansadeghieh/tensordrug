@@ -8,12 +8,13 @@ import networkx as nx
 import numpy as np
 import tensorflow as tf
 
-from tensordrug import core, utils
+from tensordrug.core.core import _MetaContainer
 from tensordrug.data.dictionary import PerfectHash, Dictionary
+from tensordrug.utils import decorator 
 from tensordrug.utils import pretty
 
 
-class Graph(core._MetaContainer):
+class Graph(_MetaContainer):
     r"""
     Basic container for sparse graphs.
     To batch graphs with variadic sizes, use :meth:`data.Graph.pack <torchdrug.data.Graph.pack>`.
@@ -108,7 +109,7 @@ class Graph(core._MetaContainer):
         if edge_list is not None and len(edge_list):
             if not isinstance(edge_list, tf.Tensor):
                 try:
-                    edge_list = tf.Tensor(edge_list, dtype=tf.dtypes.int64)
+                    edge_list = tf.convert_to_tensor(edge_list, dtype=tf.dtypes.int64)
                 except TypeError:
                     raise TypeError("Can't convert `edge_list` to tf.dtypes.int64")
         else:
@@ -118,25 +119,26 @@ class Graph(core._MetaContainer):
             else:
                 device = "cpu"
             edge_list = tf.zeros(0, num_element, dtype=tf.dtypes.int64, device=device)
-        if (edge_list < 0).any():
+        
+        if (edge_list.numpy() < 0).any():
             raise ValueError("`edge_list` should only contain non-negative indexes")
-        num_edge = tf.Tensor(len(edge_list), device=edge_list.device)
+        num_edge = tf.constant(len(edge_list))
         return edge_list, num_edge
 
     def _standarize_edge_weight(self, edge_weight, edge_list):
         if edge_weight is not None:
-            edge_weight = tf.convert_to_tensor(edge_weight, dtype=tf.dtypes.float32, device=edge_list.device)
+            edge_weight = tf.convert_to_tensor(edge_weight, dtype=tf.dtypes.float32)
             if len(edge_list) != len(edge_weight):
                 raise ValueError("`edge_list` and `edge_weight` should be the same size, but found %d and %d"
                                  % (len(edge_list), len(edge_weight)))
         else:
-            edge_weight = tf.ones(len(edge_list), device=edge_list.device)
+            edge_weight = tf.ones(len(edge_list))
         return edge_weight
 
     def _standarize_num_node(self, num_node, edge_list):
         if num_node is None:
             num_node = self._maybe_num_node(edge_list)
-        num_node = tf.convert_to_tensor(num_node, device=edge_list.device)
+        num_node = tf.convert_to_tensor(num_node)
         if (edge_list[:, :2] >= num_node).any():
             raise ValueError("`num_node` is %d, but found node %d in `edge_list`" % (num_node, edge_list[:, :2].max()))
         return num_node
@@ -145,7 +147,7 @@ class Graph(core._MetaContainer):
         if num_relation is None and edge_list.shape[1] > 2:
             num_relation = self._maybe_num_relation(edge_list)
         if num_relation is not None:
-            num_relation = tf.convert_to_tensor(num_relation, device=edge_list.device)
+            num_relation = tf.convert_to_tensor(num_relation)
         return num_relation
 
     def _maybe_num_node(self, edge_list):
@@ -358,8 +360,8 @@ class Graph(core._MetaContainer):
         Examples::
             >>> graph = data.Graph([[0, 1], [1, 0], [1, 2], [2, 1], [2, 0], [0, 2]])
             >>> index, num_match = graph.match([[0, -1], [1, 2]])
-            >>> assert (index == tf.Tensor([0, 5, 2])).all()
-            >>> assert (num_match == tf.Tensor([2, 1])).all()
+            >>> assert (index == tf.constant([0, 5, 2])).numpy().all()
+            >>> assert (num_match == tf.constant([2, 1])).numpy().all()
         """
         if len(pattern) == 0:
             index = num_match = tf.zeros(0, dtype=tf.dtypes.int64, device=self.device)
@@ -602,7 +604,7 @@ class Graph(core._MetaContainer):
         return type(self)(edge_list, edge_weight=self.edge_weight[index], num_node=self.num_node,
                           num_relation=num_relation, meta_dict=meta_dict, **data_dict)
 
-    @utils.cached_property
+    @decorator.cached_property
     def adjacency(self):
         """
         Adjacency matrix of this graph.
@@ -635,7 +637,7 @@ class Graph(core._MetaContainer):
         """Edge id to graph id mapping."""
         return tf.zeros(self.num_edge, dtype=tf.dtypes.int64, device=self.device)
 
-    @utils.cached_property
+    @decorator.cached_property
     def degree_out(self):
         """
         Weighted number of edges containing each node as output.
@@ -643,7 +645,7 @@ class Graph(core._MetaContainer):
         """
         return tf.tensor_scatter_nd_add(self.edge_weight, self.edge_list[:, 1], shape=self.num_node)
 
-    @utils.cached_property
+    @decorator.cached_property
     def degree_in(self):
         """
         Weighted number of edges containing each node as input.
@@ -1080,7 +1082,7 @@ class PackedGraph(Graph):
             raise ValueError("`num_edges` should be provided")
 
         edge_list = tf.convert_to_tensor(edge_list)
-        num_edges = tf.convert_to_tensor(num_edges, device=edge_list.device)
+        num_edges = tf.convert_to_tensor(num_edges)
         num_edge = num_edges.sum()
         if num_edge != len(edge_list):
             raise ValueError("Sum of `num_edges` is %d, but found %d edges in `edge_list`" % (num_edge, len(edge_list)))
@@ -1089,14 +1091,14 @@ class PackedGraph(Graph):
         if offsets is None:
             _edge_list = edge_list
         else:
-            offsets = tf.convert_to_tensor(offsets, device=edge_list.device)
+            offsets = tf.convert_to_tensor(offsets)
             _edge_list = edge_list.clone()
             _edge_list[:, :2] -= offsets.unsqueeze(-1)
         if num_nodes is None:
             num_nodes = []
             for num_edge, num_cum_edge in zip(num_edges, num_cum_edges):
                 num_nodes.append(self._maybe_num_node(_edge_list[num_cum_edge - num_edge: num_cum_edge]))
-        num_nodes = tf.convert_to_tensor(num_nodes, device=edge_list.device)
+        num_nodes = tf.convert_to_tensor(num_nodes)
         num_cum_nodes = num_nodes.cumsum(0)
 
         return edge_list, num_nodes, num_edges, num_cum_nodes, num_cum_edges, offsets
@@ -1164,14 +1166,14 @@ class PackedGraph(Graph):
         graphs = [graph.full() for graph in graphs]
         return graphs[0].pack(graphs)
 
-    @utils.cached_property
+    @decorator.cached_property
     def node2graph(self):
         """Node id to graph id mapping."""
         range = tf.range(self.batch_size, device=self.device)
         node2graph = range.repeat_interleave(self.num_nodes)
         return node2graph
 
-    @utils.cached_property
+    @decorator.cached_property
     def edge2graph(self):
         """Edge id to graph id mapping."""
         range = tf.range(self.batch_size, device=self.device)

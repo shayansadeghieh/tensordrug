@@ -1,7 +1,7 @@
 import math
 import tensorflow as tf
 
-from tensordrug import utils
+from tensordrug.utils import decorator
 
 
 class PerfectHash(object):
@@ -140,7 +140,7 @@ class PerfectHash(object):
         hash = (keys * weight % self.prime).sum(dim=-1) + bias
         return hash % self.prime % num_outputs + offsets
 
-    @utils.cached_property
+    @decorator.cached_property
     def second2first(self):
         """Level-2 hash values to level-1 hash values mapping."""
         range = tf.range(self.num_output, device=self.device)
