@@ -667,7 +667,8 @@ class Graph(_MetaContainer):
     @property
     def device(self):
         """Device."""
-        return self.edge_list.device
+        # return self.edge_list.device
+        return "cpu"
 
     @property
     def requires_grad(self):
@@ -767,7 +768,7 @@ class Graph(_MetaContainer):
         fields = ["num_node=%d" % self.num_node, "num_edge=%d" % self.num_edge]
         if self.num_relation is not None:
             fields.append("num_relation=%d" % self.num_relation)
-        if self.device.type != "cpu":
+        if self.device != "cpu":
             fields.append("device='%s'" % self.device)
         return "%s(%s)" % (self.__class__.__name__, ", ".join(fields))
 
