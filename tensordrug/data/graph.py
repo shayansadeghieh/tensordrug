@@ -64,13 +64,13 @@ class Graph(_MetaContainer):
 
         if node_feature is not None:
             with self.node():
-                self.node_feature = tf.convert_to_tensor(node_feature, device=self.device)
+                self.node_feature = tf.convert_to_tensor(node_feature)
         if edge_feature is not None:
             with self.edge():
-                self.edge_feature = tf.convert_to_tensor(edge_feature, device=self.device)
+                self.edge_feature = tf.convert_to_tensor(edge_feature)
         if graph_feature is not None:
             with self.graph():
-                self.graph_feature = tf.convert_to_tensor(graph_feature, device=self.device)
+                self.graph_feature = tf.convert_to_tensor(graph_feature)
     def node(self):
             """
             Context manager for node attributes.
@@ -139,8 +139,8 @@ class Graph(_MetaContainer):
         if num_node is None:
             num_node = self._maybe_num_node(edge_list)
         num_node = tf.convert_to_tensor(num_node)
-        if (edge_list[:, :2] >= num_node).any():
-            raise ValueError("`num_node` is %d, but found node %d in `edge_list`" % (num_node, edge_list[:, :2].max()))
+        if (edge_list.numpy()[:, :2] >= num_node.numpy()).any():
+            raise ValueError("`num_node` is %d, but found node %d in `edge_list`" % (num_node, edge_list.numpy()[:, :2].max()))
         return num_node
 
     def _standarize_num_relation(self, num_relation, edge_list):
@@ -154,7 +154,7 @@ class Graph(_MetaContainer):
         warnings.warn("_maybe_num_node() is used to determine the number of nodes. "
                       "This may underestimate the count if there are isolated nodes.")
         if len(edge_list):
-            return edge_list[:, :2].max().item() + 1
+            return edge_list.numpy()[:, :2].max().item() + 1
         else:
             return 0
 
@@ -172,9 +172,9 @@ class Graph(_MetaContainer):
             if stop < 0:
                 stop += count
             step = index.step or 1
-            index = tf.range(start, stop, step, device=self.device)
+            index = tf.range(start, stop, step)
         else:
-            index = tf.convert_to_tensor(index, device=self.device)
+            index = tf.convert_to_tensor(index)
             if index.ndim == 0:
                 index = index.unsqueeze(0)
             if index.dtype == tf.dtypes.bool:
@@ -217,12 +217,12 @@ class Graph(_MetaContainer):
             (PackedGraph, LongTensor): connected components, number of connected components per graph
         """
         node_in, node_out = self.edge_list.t()[:2]
-        range = tf.range(self.num_node, device=self.device)
+        range = tf.range(self.num_node)
         node_in, node_out = tf.concat([node_in, node_out, range]), tf.concat([node_out, node_in, range])
 
         # find connected component
         # O(d|E|), d is the diameter of the graph
-        min_neighbor = tf.range(self.num_node, device=self.device)
+        min_neighbor = tf.range(self.num_node)
         last = tf.zeros_like(min_neighbor)
         while not tf.equal(min_neighbor, last):
             last = min_neighbor
@@ -239,13 +239,13 @@ class Graph(_MetaContainer):
         Returns:
             PackedGraph
         """
-        node2graph = tf.convert_to_tensor(node2graph, dtype=tf.dtypes.int64, device=self.device)
+        node2graph = tf.convert_to_tensor(node2graph, dtype=tf.dtypes.int64)
         # coalesce arbitrary graph IDs to [0, n)
         _, node2graph = tf.unique(node2graph, return_inverse=True)
         num_graph = node2graph.max() + 1
         index = node2graph.argsort()
         mapping = tf.zeros_like(index)
-        mapping[index] = tf.range(len(index), device=self.device)
+        mapping[index] = tf.range(len(index))
 
         node_in, node_out = self.edge_list.t()[:2]
         edge_mask = node2graph[node_in] == node2graph[node_out]
@@ -253,7 +253,7 @@ class Graph(_MetaContainer):
         edge_index = edge2graph.argsort()
         edge_index = edge_index[edge_mask[edge_index]]
 
-        is_first_node = tf.ones(self.num_node, dtype=tf.dtypes.bool, device=self.device)
+        is_first_node = tf.ones(self.num_node, dtype=tf.dtypes.bool)
         is_first_node[1:] = node2graph[index[1:]] != node2graph[index[:-1]]
         graph_index = self.node2graph[is_first_node]
 
@@ -364,16 +364,17 @@ class Graph(_MetaContainer):
             >>> assert (num_match == tf.constant([2, 1])).numpy().all()
         """
         if len(pattern) == 0:
-            index = num_match = tf.zeros(0, dtype=tf.dtypes.int64, device=self.device)
+            index = num_match = tf.zeros(0, dtype=tf.dtypes.int64)
             return index, num_match
 
         if not hasattr(self, "inverted_index"):
             self.inverted_index = {}
-        pattern = tf.convert_to_tensor(pattern, dtype=tf.dtypes.int64, device=self.device)
+        pattern = tf.convert_to_tensor(pattern, dtype=tf.dtypes.int64)
         mask = pattern != -1
-        scale = 2 ** tf.range(pattern.shape[-1], device=self.device)
+        scale = 2 ** tf.range(pattern.shape[-1])
         query_type = (mask * scale).sum(dim=-1)
         query_index = query_type.argsort()
+       
         num_query = query_type.unique(return_counts=True)[1]
         query_ends = num_query.cumsum(0)
         query_starts = query_ends - num_query
@@ -394,7 +395,7 @@ class Graph(_MetaContainer):
             type_orders.append(order)
         ranges = tf.concat(type_ranges)
         orders = tf.stack(type_orders)
-        types = tf.range(len(mask_set), device=self.device)
+        types = tf.range(len(mask_set))
         types = types.repeat_interleave(num_query)
 
         # reorder matched ranges according to the query order
@@ -405,7 +406,7 @@ class Graph(_MetaContainer):
         num_match = ends - starts
         offsets = num_match.cumsum(0) - num_match
         types = types.repeat_interleave(num_match)
-        ranges = tf.range(num_match.sum(), device=self.device)
+        ranges = tf.range(num_match.sum())
         ranges = ranges + (starts - offsets).repeat_interleave(num_match)
         index = orders[types, ranges]
 
@@ -413,7 +414,7 @@ class Graph(_MetaContainer):
 
     def _build_inverted_index(self, mask):
         keys = self.edge_list[:, mask]
-        base = tf.Tensor(self.shape, device=self.device)
+        base = tf.Tensor(self.shape)
         base = base[mask]
         max = reduce(int.__mul__, base.tolist())
         # if max > torch.iinfo(torch.int64).max:
@@ -450,7 +451,7 @@ class Graph(_MetaContainer):
         edge_list = self.edge_list.clone()
         for i, axis_index in enumerate(index):
             axis_index = self._standarize_index(axis_index, self.num_node)
-            mapping = -tf.ones(self.num_node, dtype=tf.dtypes.int64, device=self.device)
+            mapping = -tf.ones(self.num_node, dtype=tf.dtypes.int64)
             mapping[axis_index] = axis_index
             edge_list[:, i] = mapping[edge_list[:, i]]
         edge_index = (edge_list >= 0).all(dim=-1)
@@ -504,9 +505,9 @@ class Graph(_MetaContainer):
             >>> assert graph.node_mask([1, 2], compact=True).adjacency.shape == (2, 2)
         """
         index = self._standarize_index(index, self.num_node)
-        mapping = -tf.ones(self.num_node, dtype=tf.dtypes.int64, device=self.device)
+        mapping = -tf.ones(self.num_node, dtype=tf.dtypes.int64)
         if compact:
-            mapping[index] = tf.range(len(index), device=self.device)
+            mapping[index] = tf.range(len(index))
             num_node = len(index)
         else:
             mapping[index] = index
@@ -554,9 +555,9 @@ class Graph(_MetaContainer):
         Returns:
             Graph
         """
-        index = tf.range(self.num_node, device=self.device)
+        index = tf.range(self.num_node)
         if self.num_relation:
-            edge_list = tf.meshgrid(index, index, tf.range(self.num_relation, device=self.device))
+            edge_list = tf.meshgrid(index, index, tf.range(self.num_relation))
         else:
             edge_list = tf.meshgrid(index, index)
         edge_list = tf.stack(edge_list).flatten(1)
@@ -598,7 +599,7 @@ class Graph(_MetaContainer):
             num_relation = num_relation * 2
         edge_list = tf.stack([self.edge_list, edge_list], dim=1).flatten(0, 1)
 
-        index = tf.range(self.num_edge, device=self.device).unsqueeze(-1).expand(-1, 2).flatten()
+        index = tf.range(self.num_edge).unsqueeze(-1).expand(-1, 2).flatten()
         data_dict, meta_dict = self.data_mask(edge_index=index)
 
         return type(self)(edge_list, edge_weight=self.edge_weight[index], num_node=self.num_node,
@@ -617,7 +618,7 @@ class Graph(_MetaContainer):
     _tensor_names = ["edge_list", "edge_weight", "num_node", "num_relation", "edge_feature"]
 
     def to_tensors(self):
-        edge_feature = getattr(self, "edge_feature", tf.Tensor(0, device=self.device))
+        edge_feature = getattr(self, "edge_feature", tf.Tensor(0))
         return self.edge_list, self.edge_weight, self.num_node, self.num_relation, edge_feature
 
     @classmethod
@@ -630,12 +631,12 @@ class Graph(_MetaContainer):
     @property
     def node2graph(self):
         """Node id to graph id mapping."""
-        return tf.zeros(self.num_node, dtype=tf.dtypes.int64, device=self.device)
+        return tf.zeros(self.num_node, dtype=tf.dtypes.int64)
 
     @property
     def edge2graph(self):
         """Edge id to graph id mapping."""
-        return tf.zeros(self.num_edge, dtype=tf.dtypes.int64, device=self.device)
+        return tf.zeros(self.num_edge, dtype=tf.dtypes.int64)
 
     @decorator.cached_property
     def degree_out(self):
@@ -871,11 +872,11 @@ class PackedGraph(Graph):
     def _get_offsets(self, num_nodes=None, num_edges=None, num_cum_nodes=None, num_cum_edges=None):
         if num_nodes is None:
             num_cum_nodes_shifted = tf.concat(
-                [tf.zeros(1, dtype=tf.dtypes.int64, device=self.device), num_cum_nodes[:-1]])
+                [tf.zeros(1, dtype=tf.dtypes.int64), num_cum_nodes[:-1]])
             num_nodes = num_cum_nodes - num_cum_nodes_shifted
         if num_edges is None:
             num_cum_edges_shifted = tf.concat(
-                [tf.zeros(1, dtype=tf.dtypes.int64, device=self.device), num_cum_edges[:-1]])
+                [tf.zeros(1, dtype=tf.dtypes.int64), num_cum_edges[:-1]])
             num_edges = num_cum_edges - num_cum_edges_shifted
         if num_cum_nodes is None:
             num_cum_nodes = num_nodes.cumsum(0)
@@ -887,11 +888,11 @@ class PackedGraph(Graph):
         Parameters:
             graph2graph (array_like): ID of the new graph each graph belongs to
         """
-        graph2graph = tf.convert_to_tensor(graph2graph, dtype=tf.dtypes.int64, device=self.device)
+        graph2graph = tf.convert_to_tensor(graph2graph, dtype=tf.dtypes.int64)
         # coalesce arbitrary graph IDs to [0, n)
         _, graph2graph = tf.unique(graph2graph, return_inverse=True)
 
-        graph_key = graph2graph * self.batch_size + tf.range(self.batch_size, device=self.device)
+        graph_key = graph2graph * self.batch_size + tf.range(self.batch_size)
         graph_index = graph_key.argsort()
         graph = self.subbatch(graph_index)
         graph2graph = graph2graph[graph_index]
@@ -983,7 +984,7 @@ class PackedGraph(Graph):
         Returns:
             PackedGraph
         """
-        pack_offsets = tf.range(count, device=self.device) * self.num_node
+        pack_offsets = tf.range(count) * self.num_node
         pack_offsets = pack_offsets.unsqueeze(-1).expand(-1, self.num_edge).flatten()
         edge_list = self.edge_list.repeat(count, 1)
         edge_list[:, :2] += pack_offsets.unsqueeze(-1)
@@ -1010,9 +1011,9 @@ class PackedGraph(Graph):
         Returns:
             PackedGraph
         """
-        repeats = tf.convert_to_tensor(repeats, dtype=tf.dtypes.int64, device=self.device)
+        repeats = tf.convert_to_tensor(repeats, dtype=tf.dtypes.int64)
         if repeats.numel() == 1:
-            repeats = repeats * tf.ones(self.batch_size, dtype=tf.dtypes.int64, device=self.device)
+            repeats = repeats * tf.ones(self.batch_size, dtype=tf.dtypes.int64)
         num_nodes = self.num_nodes.repeat_interleave(repeats)
         num_edges = self.num_edges.repeat_interleave(repeats)
         num_cum_nodes = num_nodes.cumsum(0)
@@ -1104,12 +1105,12 @@ class PackedGraph(Graph):
         return edge_list, num_nodes, num_edges, num_cum_nodes, num_cum_edges, offsets
 
     def _get_num_xs(self, index, num_cum_xs):
-        x = tf.zeros(num_cum_xs[-1], dtype=tf.dtypes.int64, device=self.device)
+        x = tf.zeros(num_cum_xs[-1], dtype=tf.dtypes.int64)
         x[index] = 1
         num_cum_indexes = x.cumsum(0)
-        num_cum_indexes = tf.concat([tf.zeros(1, dtype=tf.dtypes.int64, device=self.device), num_cum_indexes])
+        num_cum_indexes = tf.concat([tf.zeros(1, dtype=tf.dtypes.int64), num_cum_indexes])
         new_num_cum_xs = num_cum_indexes[num_cum_xs]
-        new_num_cum_xs_shifted = tf.concat([tf.zeros(1, dtype=tf.dtypes.int64, device=self.device), new_num_cum_xs[:-1]])
+        new_num_cum_xs_shifted = tf.concat([tf.zeros(1, dtype=tf.dtypes.int64), new_num_cum_xs[:-1]])
         new_num_xs = new_num_cum_xs - new_num_cum_xs_shifted
         return new_num_xs
 
@@ -1145,7 +1146,7 @@ class PackedGraph(Graph):
             graph = self.repeat_interleave(count)
             index_order = index.argsort()
             order = tf.zeros_like(index)
-            order[index_order] = tf.range(len(index), dtype=tf.dtypes.int64, device=self.device)
+            order[index_order] = tf.range(len(index), dtype=tf.dtypes.int64)
             return graph.subbatch(order)
 
         return self.subbatch(index)
@@ -1169,14 +1170,14 @@ class PackedGraph(Graph):
     @decorator.cached_property
     def node2graph(self):
         """Node id to graph id mapping."""
-        range = tf.range(self.batch_size, device=self.device)
+        range = tf.range(self.batch_size)
         node2graph = range.repeat_interleave(self.num_nodes)
         return node2graph
 
     @decorator.cached_property
     def edge2graph(self):
         """Edge id to graph id mapping."""
-        range = tf.range(self.batch_size, device=self.device)
+        range = tf.range(self.batch_size)
         edge2graph = range.repeat_interleave(self.num_edges)
         return edge2graph
 
@@ -1197,9 +1198,9 @@ class PackedGraph(Graph):
             PackedGraph
         """
         index = self._standarize_index(index, self.num_node)
-        mapping = -tf.ones(self.num_node, dtype=tf.dtypes.int64, device=self.device)
+        mapping = -tf.ones(self.num_node, dtype=tf.dtypes.int64)
         if compact:
-            mapping[index] = tf.range(len(index), device=self.device)
+            mapping[index] = tf.range(len(index))
             num_nodes = self._get_num_xs(index, self.num_cum_nodes)
             offsets = self._get_offsets(num_nodes, self.num_edges)
         else:
@@ -1248,17 +1249,17 @@ class PackedGraph(Graph):
             PackedGraph
         """
         index = self._standarize_index(index, self.batch_size)
-        graph2index = -tf.ones(self.batch_size, dtype=tf.dtypes.int64, device=self.device)
-        graph2index[index] = tf.range(len(index), device=self.device)
+        graph2index = -tf.ones(self.batch_size, dtype=tf.dtypes.int64)
+        graph2index[index] = tf.range(len(index))
 
         node_index = graph2index[self.node2graph] >= 0
         node_index = self._standarize_index(node_index, self.num_node)
-        mapping = -tf.ones(self.num_node, dtype=tf.dtypes.int64, device=self.device)
+        mapping = -tf.ones(self.num_node, dtype=tf.dtypes.int64)
         if compact:
             key = graph2index[self.node2graph[node_index]] * self.num_node + node_index
             order = key.argsort()
             node_index = node_index[order]
-            mapping[node_index] = tf.range(len(node_index), device=self.device)
+            mapping[node_index] = tf.range(len(node_index))
             num_nodes = self.num_nodes[index]
         else:
             mapping[node_index] = node_index
@@ -1317,7 +1318,7 @@ class PackedGraph(Graph):
         edge_list = tf.stack([self.edge_list, edge_list], dim=1).flatten(0, 1)
         offsets = self._offsets.unsqueeze(-1).expand(-1, 2).flatten()
 
-        index = tf.range(self.num_edge, device=self.device).unsqueeze(-1).expand(-1, 2).flatten()
+        index = tf.range(self.num_edge).unsqueeze(-1).expand(-1, 2).flatten()
         data_dict, meta_dict = self.data_mask(edge_index=index)
 
         return type(self)(edge_list, edge_weight=self.edge_weight[index], num_nodes=self.num_nodes,
