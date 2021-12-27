@@ -5,3 +5,6 @@ graph = Graph(edge_list, num_nodes=6)
 
 print("graph created")
 print(graph)
+
+subgraph = graph.subgraph([2,3,4])
+print(subgraph)

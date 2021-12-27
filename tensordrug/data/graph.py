@@ -8,6 +8,8 @@ import networkx as nx
 import numpy as np
 import tensorflow as tf
 
+import torch
+
 from tensordrug.core.core import _MetaContainer
 from tensordrug.data.dictionary import PerfectHash, Dictionary
 from tensordrug.utils import decorator 
@@ -180,8 +182,8 @@ class Graph(_MetaContainer):
             if index.dtype == tf.dtypes.bool:
                 index = index.nonzero().squeeze(-1)
             else:
-                index = index.long()
-            max_index = -1 if len(index) == 0 else index.max().item()
+                index = tf.convert_to_tensor(index, dtype=tf.dtypes.int32)
+            max_index = -1 if len(index) == 0 else index.numpy().max().item()
             if max_index >= count:
                 raise ValueError("Invalid index. Expect index smaller than %d, but found %d" % (count, max_index))
         return index
@@ -505,14 +507,15 @@ class Graph(_MetaContainer):
             >>> assert graph.node_mask([1, 2], compact=True).adjacency.shape == (2, 2)
         """
         index = self._standarize_index(index, self.num_node)
-        mapping = -tf.ones(self.num_node, dtype=tf.dtypes.int64)
+        mapping = -np.ones(self.num_node)
+        
         if compact:
-            mapping[index] = tf.range(len(index))
+            mapping[index.numpy()] = np.arange(len(index))
             num_node = len(index)
         else:
             mapping[index] = index
             num_node = self.num_node
-
+        mapping = tf.convert_to_tensor(mapping)
         edge_list = self.edge_list.clone()
         edge_list[:, :2] = mapping[edge_list[:, :2]]
         edge_index = (edge_list[:, :2] >= 0).all(dim=-1)
