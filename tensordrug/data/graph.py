@@ -516,9 +516,9 @@ class Graph(_MetaContainer):
             mapping[index] = index
             num_node = self.num_node
         mapping = tf.convert_to_tensor(mapping)
-        edge_list = self.edge_list.clone()
-        edge_list[:, :2] = mapping[edge_list[:, :2]]
-        edge_index = (edge_list[:, :2] >= 0).all(dim=-1)
+        edge_list = self.edge_list.numpy().copy()
+        edge_list[:, :2] = mapping.numpy()[edge_list[:, :2]]
+        edge_index = (edge_list[:, :2] >= 0).all(axis=-1)
 
         if compact:
             data_dict, meta_dict = self.data_mask(index, edge_index)# , exclude="graph")
