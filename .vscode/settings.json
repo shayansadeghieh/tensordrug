@@ -1,8 +1,8 @@
 {
   "editor.formatOnSave": true,
-  // "python.analysis.extraPaths": [
-  //   "/Users/shayansadeghieh/Desktop/tensordrug/venv/bin/python3.8"
-  // ],
-  "python.pythonPath": "/Library/Frameworks/Python.framework/Versions/3.8/bin/python3.8",
+  "python.analysis.extraPaths": [
+    "/Users/shayansadeghieh/Desktop/tensordrug/tensordrugvenv/lib/python3.8/site-packages"
+  ],
+  "python.pythonPath": "/Users/shayansadeghieh/Desktop/tensordrug/tensordrugvenv/bin/python3.8",
   "editor.defaultFormatter": "esbenp.prettier-vscode"
 }
