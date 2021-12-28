@@ -12,7 +12,7 @@ import torch
 
 from tensordrug.core.core import _MetaContainer
 from tensordrug.data.dictionary import PerfectHash, Dictionary
-from tensordrug.utils import decorator 
+from tensordrug.utils import decorator
 from tensordrug.utils import pretty
 
 
@@ -48,8 +48,17 @@ class Graph(_MetaContainer):
 
     _meta_types = {"node", "edge", "relation", "graph"}
 
-    def __init__(self, edge_list=None, edge_weight=None, num_node=None, num_relation=None,
-            node_feature=None, edge_feature=None, graph_feature=None, **kwargs):
+    def __init__(
+        self,
+        edge_list=None,
+        edge_weight=None,
+        num_node=None,
+        num_relation=None,
+        node_feature=None,
+        edge_feature=None,
+        graph_feature=None,
+        **kwargs
+    ):
         super(Graph, self).__init__(**kwargs)
         # edge_list: N * [h, t] or N * [h, t, r]
         edge_list, num_edge = self._standarize_edge_list(edge_list, num_relation)
@@ -73,11 +82,12 @@ class Graph(_MetaContainer):
         if graph_feature is not None:
             with self.graph():
                 self.graph_feature = tf.convert_to_tensor(graph_feature)
+
     def node(self):
-            """
-            Context manager for node attributes.
-            """
-            return self.context("node")
+        """
+        Context manager for node attributes.
+        """
+        return self.context("node")
 
     def edge(self):
         """
@@ -94,12 +104,16 @@ class Graph(_MetaContainer):
     def _check_attribute(self, key, value):
         if self._meta_context == "node":
             if len(value) != self.num_node:
-                raise ValueError("Expect node attribute `%s` to have shape (%d, *), but found %s" %
-                                 (key, self.num_node, value.shape))
+                raise ValueError(
+                    "Expect node attribute `%s` to have shape (%d, *), but found %s"
+                    % (key, self.num_node, value.shape)
+                )
         elif self._meta_context == "edge":
             if len(value) != self.num_edge:
-                raise ValueError("Expect edge attribute `%s` to have shape (%d, *), but found %s" %
-                                 (key, self.num_edge, value.shape))
+                raise ValueError(
+                    "Expect edge attribute `%s` to have shape (%d, *), but found %s"
+                    % (key, self.num_edge, value.shape)
+                )
         return
 
     def __setattr__(self, key, value):
@@ -121,7 +135,7 @@ class Graph(_MetaContainer):
             else:
                 device = "cpu"
             edge_list = tf.zeros(0, num_element, dtype=tf.dtypes.int64, device=device)
-        
+
         if (edge_list.numpy() < 0).any():
             raise ValueError("`edge_list` should only contain non-negative indexes")
         num_edge = tf.constant(len(edge_list))
@@ -131,8 +145,10 @@ class Graph(_MetaContainer):
         if edge_weight is not None:
             edge_weight = tf.convert_to_tensor(edge_weight, dtype=tf.dtypes.float32)
             if len(edge_list) != len(edge_weight):
-                raise ValueError("`edge_list` and `edge_weight` should be the same size, but found %d and %d"
-                                 % (len(edge_list), len(edge_weight)))
+                raise ValueError(
+                    "`edge_list` and `edge_weight` should be the same size, but found %d and %d"
+                    % (len(edge_list), len(edge_weight))
+                )
         else:
             edge_weight = tf.ones(len(edge_list))
         return edge_weight
@@ -142,7 +158,10 @@ class Graph(_MetaContainer):
             num_node = self._maybe_num_node(edge_list)
         num_node = tf.convert_to_tensor(num_node)
         if (edge_list.numpy()[:, :2] >= num_node.numpy()).any():
-            raise ValueError("`num_node` is %d, but found node %d in `edge_list`" % (num_node, edge_list.numpy()[:, :2].max()))
+            raise ValueError(
+                "`num_node` is %d, but found node %d in `edge_list`"
+                % (num_node, edge_list.numpy()[:, :2].max())
+            )
         return num_node
 
     def _standarize_num_relation(self, num_relation, edge_list):
@@ -153,16 +172,20 @@ class Graph(_MetaContainer):
         return num_relation
 
     def _maybe_num_node(self, edge_list):
-        warnings.warn("_maybe_num_node() is used to determine the number of nodes. "
-                      "This may underestimate the count if there are isolated nodes.")
+        warnings.warn(
+            "_maybe_num_node() is used to determine the number of nodes. "
+            "This may underestimate the count if there are isolated nodes."
+        )
         if len(edge_list):
             return edge_list.numpy()[:, :2].max().item() + 1
         else:
             return 0
 
     def _maybe_num_relation(self, edge_list):
-        warnings.warn("_maybe_num_relation() is used to determine the number of relations. "
-                      "This may underestimate the count if there are unseen relations.")
+        warnings.warn(
+            "_maybe_num_relation() is used to determine the number of relations. "
+            "This may underestimate the count if there are unseen relations."
+        )
         return edge_list[:, 2].max().item() + 1
 
     def _standarize_index(self, index, count):
@@ -185,7 +208,10 @@ class Graph(_MetaContainer):
                 index = tf.convert_to_tensor(index, dtype=tf.dtypes.int32)
             max_index = -1 if len(index) == 0 else index.numpy().max().item()
             if max_index >= count:
-                raise ValueError("Invalid index. Expect index smaller than %d, but found %d" % (count, max_index))
+                raise ValueError(
+                    "Invalid index. Expect index smaller than %d, but found %d"
+                    % (count, max_index)
+                )
         return index
 
     @classmethod
@@ -200,7 +226,10 @@ class Graph(_MetaContainer):
         """
         adjacency = tf.convert_to_tensor(adjacency)
         if adjacency.shape[0] != adjacency.shape[1]:
-            raise ValueError("`adjacency` should be a square matrix, but found %d and %d" % adjacency.shape[:2])
+            raise ValueError(
+                "`adjacency` should be a square matrix, but found %d and %d"
+                % adjacency.shape[:2]
+            )
 
         edge_list = adjacency.nonzero()
         edge_weight = adjacency[tuple(edge_list.t())]
@@ -210,7 +239,9 @@ class Graph(_MetaContainer):
             edge_feature = tf.convert_to_tensor(edge_feature)
             edge_feature = edge_feature[tuple(edge_list.t())]
 
-        return cls(edge_list, edge_weight, num_node, num_relation, node_feature, edge_feature)
+        return cls(
+            edge_list, edge_weight, num_node, num_relation, node_feature, edge_feature
+        )
 
     def connected_components(self):
         """
@@ -220,7 +251,9 @@ class Graph(_MetaContainer):
         """
         node_in, node_out = self.edge_list.t()[:2]
         range = tf.range(self.num_node)
-        node_in, node_out = tf.concat([node_in, node_out, range]), tf.concat([node_out, node_in, range])
+        node_in, node_out = tf.concat([node_in, node_out, range]), tf.concat(
+            [node_out, node_in, range]
+        )
 
         # find connected component
         # O(d|E|), d is the diameter of the graph
@@ -228,7 +261,9 @@ class Graph(_MetaContainer):
         last = tf.zeros_like(min_neighbor)
         while not tf.equal(min_neighbor, last):
             last = min_neighbor
-            min_neighbor = tf.compat.v1.scatter_min(min_neighbor[node_out], node_in, shapeo=self.num_node)[0]
+            min_neighbor = tf.compat.v1.scatter_min(
+                min_neighbor[node_out], node_in, shapeo=self.num_node
+            )[0]
         anchor = tf.unique(min_neighbor)
         num_cc = tf.tensor_scatter_nd_add(tf.ones_like(anchor), self.node2graph[anchor])
         return self.split(min_neighbor), num_cc
@@ -262,17 +297,30 @@ class Graph(_MetaContainer):
         edge_list = self.edge_list.clone()
         edge_list[:, :2] = mapping[edge_list[:, :2]]
 
-        num_nodes = tf.tensor_scatter_nd_add(tf.ones_like(node2graph), node2graph, shape=num_graph)
-        num_edges = tf.tensor_scatter_nd_add(tf.ones_like(edge2graph[edge_index]), edge2graph[edge_index], shape=num_graph)
+        num_nodes = tf.tensor_scatter_nd_add(
+            tf.ones_like(node2graph), node2graph, shape=num_graph
+        )
+        num_edges = tf.tensor_scatter_nd_add(
+            tf.ones_like(edge2graph[edge_index]),
+            edge2graph[edge_index],
+            shape=num_graph,
+        )
 
         num_cum_nodes = num_nodes.cumsum(0)
         offsets = (num_cum_nodes - num_nodes)[edge2graph[edge_index]]
 
         data_dict, meta_dict = self.data_mask(index, edge_index, graph_index)
 
-        return self.packed_type(edge_list[edge_index], edge_weight=self.edge_weight[edge_index], num_nodes=num_nodes,
-                                num_edges=num_edges, num_relation=self.num_relation, offsets=offsets,
-                                meta_dict=meta_dict, **data_dict)
+        return self.packed_type(
+            edge_list[edge_index],
+            edge_weight=self.edge_weight[edge_index],
+            num_nodes=num_nodes,
+            num_edges=num_edges,
+            num_relation=self.num_relation,
+            offsets=offsets,
+            meta_dict=meta_dict,
+            **data_dict
+        )
 
     @classmethod
     def pack(cls, graphs):
@@ -302,15 +350,24 @@ class Graph(_MetaContainer):
             if num_relation == -1:
                 num_relation = graph.num_relation
             elif num_relation != graph.num_relation:
-                raise ValueError("Inconsistent `num_relation` in graphs. Expect %d but got %d."
-                                 % (num_relation, graph.num_relation))
+                raise ValueError(
+                    "Inconsistent `num_relation` in graphs. Expect %d but got %d."
+                    % (num_relation, graph.num_relation)
+                )
 
         edge_list = tf.concat(edge_list)
         edge_weight = tf.concat(edge_weight)
         data_dict = {k: tf.concat(v) for k, v in data_dict.items()}
 
-        return cls.packed_type(edge_list, edge_weight=edge_weight, num_nodes=num_nodes, num_edges=num_edges,
-                               num_relation=num_relation, meta_dict=meta_dict, **data_dict)
+        return cls.packed_type(
+            edge_list,
+            edge_weight=edge_weight,
+            num_nodes=num_nodes,
+            num_edges=num_edges,
+            num_relation=num_relation,
+            meta_dict=meta_dict,
+            **data_dict
+        )
 
     def repeat(self, count):
         """
@@ -334,8 +391,15 @@ class Graph(_MetaContainer):
             shape[0] = count
             data_dict[k] = v.repeat(shape)
 
-        return self.packed_type(edge_list, edge_weight=edge_weight, num_nodes=num_nodes, num_edges=num_edges,
-                                num_relation=num_relation, meta_dict=self.meta_dict, **data_dict)
+        return self.packed_type(
+            edge_list,
+            edge_weight=edge_weight,
+            num_nodes=num_nodes,
+            num_edges=num_edges,
+            num_relation=num_relation,
+            meta_dict=self.meta_dict,
+            **data_dict
+        )
 
     def get_edge(self, edge):
         """
@@ -346,8 +410,10 @@ class Graph(_MetaContainer):
             Tensor: weight of the edge
         """
         if len(edge) != self.edge_list.shape[1]:
-            raise ValueError("Incorrect edge index. Expect %d axes but got %d axes"
-                             % (self.edge_list.shape[1], len(edge)))
+            raise ValueError(
+                "Incorrect edge index. Expect %d axes but got %d axes"
+                % (self.edge_list.shape[1], len(edge))
+            )
 
         edge_index = self.match(edge)
         return self.edge_weight[edge_index].sum()
@@ -376,7 +442,7 @@ class Graph(_MetaContainer):
         scale = 2 ** tf.range(pattern.shape[-1])
         query_type = (mask * scale).sum(dim=-1)
         query_index = query_type.argsort()
-       
+
         num_query = query_type.unique(return_counts=True)[1]
         query_ends = num_query.cumsum(0)
         query_starts = query_ends - num_query
@@ -387,7 +453,7 @@ class Graph(_MetaContainer):
         # get matched range for each query type
         for i, mask in enumerate(mask_set):
             query_type = tuple(mask)
-            type_index = query_index[query_starts[i]: query_ends[i]]
+            type_index = query_index[query_starts[i] : query_ends[i]]
             type_edge = pattern[type_index][:, mask]
             if query_type not in self.inverted_index:
                 self.inverted_index[query_type] = self._build_inverted_index(mask)
@@ -401,7 +467,9 @@ class Graph(_MetaContainer):
         types = types.repeat_interleave(num_query)
 
         # reorder matched ranges according to the query order
-        ranges = tf.tensor_scatter_nd_add(ranges, query_index, dim=0, shape=len(pattern))
+        ranges = tf.tensor_scatter_nd_add(
+            ranges, query_index, dim=0, shape=len(pattern)
+        )
         types = tf.tensor_scatter_nd_add(types, query_index, shape=len(pattern))
         # convert range to indexes
         starts, ends = ranges.t()
@@ -445,7 +513,9 @@ class Graph(_MetaContainer):
         while len(index) < 2:
             index.append(slice(None))
         if len(index) > 2:
-            raise ValueError("Graph has only 2 axis, but %d axis is indexed" % len(index))
+            raise ValueError(
+                "Graph has only 2 axis, but %d axis is indexed" % len(index)
+            )
 
         if all([isinstance(axis_index, int) for axis_index in index]):
             return self.get_edge(index)
@@ -481,7 +551,14 @@ class Graph(_MetaContainer):
         """
         return self.node_mask(index, compact=True)
 
-    def data_mask(self, node_index=None, edge_index=None, graph_index=None, include=None, exclude=None):
+    def data_mask(
+        self,
+        node_index=None,
+        edge_index=None,
+        graph_index=None,
+        include=None,
+        exclude=None,
+    ):
         data_dict, meta_dict = self.data_by_meta(include, exclude)
         for k, v in data_dict.items():
             if meta_dict[k] == "node" and node_index is not None:
@@ -508,7 +585,7 @@ class Graph(_MetaContainer):
         """
         index = self._standarize_index(index, self.num_node)
         mapping = -np.ones(self.num_node)
-        
+
         if compact:
             mapping[index.numpy()] = np.arange(len(index))
             num_node = len(index)
@@ -521,12 +598,22 @@ class Graph(_MetaContainer):
         edge_index = (edge_list[:, :2] >= 0).all(axis=-1)
 
         if compact:
-            data_dict, meta_dict = self.data_mask(index, edge_index)# , exclude="graph")
+            data_dict, meta_dict = self.data_mask(
+                index, edge_index
+            )  # , exclude="graph")
         else:
-            data_dict, meta_dict = self.data_mask(edge_index=edge_index)# , exclude="graph")
+            data_dict, meta_dict = self.data_mask(
+                edge_index=edge_index
+            )  # , exclude="graph")
 
-        return type(self)(edge_list[edge_index], edge_weight=self.edge_weight[edge_index], num_node=num_node,
-                          num_relation=self.num_relation, meta_dict=meta_dict, **data_dict)
+        return type(self)(
+            edge_list[edge_index],
+            edge_weight=self.edge_weight[edge_index],
+            num_node=num_node,
+            num_relation=self.num_relation,
+            meta_dict=meta_dict,
+            **data_dict
+        )
 
     def compact(self):
         """
@@ -549,8 +636,14 @@ class Graph(_MetaContainer):
         index = self._standarize_index(index, self.num_edge)
         data_dict, meta_dict = self.data_mask(edge_index=index)
 
-        return type(self)(self.edge_list[index], edge_weight=self.edge_weight[index], num_node=self.num_node,
-                          num_relation=self.num_relation, meta_dict=meta_dict, **data_dict)
+        return type(self)(
+            self.edge_list[index],
+            edge_weight=self.edge_weight[index],
+            num_node=self.num_node,
+            num_relation=self.num_relation,
+            meta_dict=meta_dict,
+            **data_dict
+        )
 
     def full(self):
         """
@@ -568,8 +661,14 @@ class Graph(_MetaContainer):
 
         data_dict, meta_dict = self.data_by_meta(exclude="edge")
 
-        return type(self)(edge_list, edge_weight=edge_weight, num_node=self.num_node, num_relation=self.num_relation,
-                          meta_dict=meta_dict, **data_dict)
+        return type(self)(
+            edge_list,
+            edge_weight=edge_weight,
+            num_node=self.num_node,
+            num_relation=self.num_relation,
+            meta_dict=meta_dict,
+            **data_dict
+        )
 
     def directed(self, order=None):
         """
@@ -605,8 +704,14 @@ class Graph(_MetaContainer):
         index = tf.range(self.num_edge).unsqueeze(-1).expand(-1, 2).flatten()
         data_dict, meta_dict = self.data_mask(edge_index=index)
 
-        return type(self)(edge_list, edge_weight=self.edge_weight[index], num_node=self.num_node,
-                          num_relation=num_relation, meta_dict=meta_dict, **data_dict)
+        return type(self)(
+            edge_list,
+            edge_weight=self.edge_weight[index],
+            num_node=self.num_node,
+            num_relation=num_relation,
+            meta_dict=meta_dict,
+            **data_dict
+        )
 
     @decorator.cached_property
     def adjacency(self):
@@ -618,18 +723,32 @@ class Graph(_MetaContainer):
         """
         return utils.sparse_coo_tensor(self.edge_list.t(), self.edge_weight, self.shape)
 
-    _tensor_names = ["edge_list", "edge_weight", "num_node", "num_relation", "edge_feature"]
+    _tensor_names = [
+        "edge_list",
+        "edge_weight",
+        "num_node",
+        "num_relation",
+        "edge_feature",
+    ]
 
     def to_tensors(self):
         edge_feature = getattr(self, "edge_feature", tf.Tensor(0))
-        return self.edge_list, self.edge_weight, self.num_node, self.num_relation, edge_feature
+        return (
+            self.edge_list,
+            self.edge_weight,
+            self.num_node,
+            self.num_relation,
+            edge_feature,
+        )
 
     @classmethod
     def from_tensors(cls, tensors):
         edge_list, edge_weight, num_node, num_relation, edge_feature = tensors
         if edge_feature.ndim == 0:
             edge_feature = None
-        return cls(edge_list, edge_weight, num_node, num_relation, edge_feature=edge_feature)
+        return cls(
+            edge_list, edge_weight, num_node, num_relation, edge_feature=edge_feature
+        )
 
     @property
     def node2graph(self):
@@ -647,7 +766,9 @@ class Graph(_MetaContainer):
         Weighted number of edges containing each node as output.
         Note this is the **in-degree** in graph theory.
         """
-        return tf.tensor_scatter_nd_add(self.edge_weight, self.edge_list[:, 1], shape=self.num_node)
+        return tf.tensor_scatter_nd_add(
+            self.edge_weight, self.edge_list[:, 1], shape=self.num_node
+        )
 
     @decorator.cached_property
     def degree_in(self):
@@ -655,7 +776,9 @@ class Graph(_MetaContainer):
         Weighted number of edges containing each node as input.
         Note this is the **out-degree** in graph theory.
         """
-        return tf.tensor_scatter_nd_add(self.edge_weight, self.edge_list[:, 0], shape=self.num_node)
+        return tf.tensor_scatter_nd_add(
+            self.edge_weight, self.edge_list[:, 0], shape=self.num_node
+        )
 
     @property
     def edge_list(self):
@@ -717,8 +840,10 @@ class Graph(_MetaContainer):
         keys = set(self.data_dict.keys())
         src_keys = set(src.data_dict.keys())
         if keys != src_keys:
-            raise RuntimeError("Attributes mismatch. Trying to assign attributes %s, "
-                               "but current graph has attributes %s" % (src_keys, keys))
+            raise RuntimeError(
+                "Attributes mismatch. Trying to assign attributes %s, "
+                "but current graph has attributes %s" % (src_keys, keys)
+            )
         for k, v in self.data_dict.items():
             v.copy_(src.data_dict[k])
 
@@ -728,17 +853,27 @@ class Graph(_MetaContainer):
         """
         Detach this graph.
         """
-        return type(self)(self.edge_list.detach(), edge_weight=self.edge_weight.detach(),
-                          num_node=self.num_node, num_relation=self.num_relation,
-                          meta_dict=self.meta_dict, **utils.detach(self.data_dict))
+        return type(self)(
+            self.edge_list.detach(),
+            edge_weight=self.edge_weight.detach(),
+            num_node=self.num_node,
+            num_relation=self.num_relation,
+            meta_dict=self.meta_dict,
+            **utils.detach(self.data_dict)
+        )
 
     def clone(self):
         """
         Clone this graph.
         """
-        return type(self)(self.edge_list.clone(), edge_weight=self.edge_weight.clone(),
-                          num_node=self.num_node, num_relation=self.num_relation,
-                          meta_dict=self.meta_dict, **utils.clone(self.data_dict))
+        return type(self)(
+            self.edge_list.clone(),
+            edge_weight=self.edge_weight.clone(),
+            num_node=self.num_node,
+            num_relation=self.num_relation,
+            meta_dict=self.meta_dict,
+            **utils.clone(self.data_dict)
+        )
 
     def cuda(self, *args, **kwargs):
         """
@@ -750,9 +885,14 @@ class Graph(_MetaContainer):
         if edge_list is self.edge_list:
             return self
         else:
-            return type(self)(edge_list, edge_weight=self.edge_weight,
-                              num_node=self.num_node, num_relation=self.num_relation,
-                              meta_dict=self.meta_dict, **utils.cuda(self.data_dict, *args, **kwargs))
+            return type(self)(
+                edge_list,
+                edge_weight=self.edge_weight,
+                num_node=self.num_node,
+                num_relation=self.num_relation,
+                meta_dict=self.meta_dict,
+                **utils.cuda(self.data_dict, *args, **kwargs)
+            )
 
     def cpu(self):
         """
@@ -764,8 +904,14 @@ class Graph(_MetaContainer):
         if edge_list is self.edge_list:
             return self
         else:
-            return type(self)(edge_list, edge_weight=self.edge_weight, num_node=self.num_node,
-                              num_relation=self.num_relation, meta_dict=self.meta_dict, **utils.cpu(self.data_dict))
+            return type(self)(
+                edge_list,
+                edge_weight=self.edge_weight,
+                num_node=self.num_node,
+                num_relation=self.num_relation,
+                meta_dict=self.meta_dict,
+                **utils.cpu(self.data_dict)
+            )
 
     def __repr__(self):
         fields = ["num_node=%d" % self.num_node, "num_edge=%d" % self.num_edge]
@@ -775,7 +921,9 @@ class Graph(_MetaContainer):
             fields.append("device='%s'" % self.device)
         return "%s(%s)" % (self.__class__.__name__, ", ".join(fields))
 
-    def visualize(self, title=None, save_file=None, figure_size=(3, 3), ax=None, layout="spring"):
+    def visualize(
+        self, title=None, save_file=None, figure_size=(3, 3), ax=None, layout="spring"
+    ):
         """
         Visualize this graph with matplotlib.
         Parameters:
@@ -849,10 +997,24 @@ class PackedGraph(Graph):
 
     unpacked_type = Graph
 
-    def __init__(self, edge_list=None, edge_weight=None, num_nodes=None, num_edges=None, num_relation=None,
-                 offsets=None, **kwargs):
-        edge_list, num_nodes, num_edges, num_cum_nodes, num_cum_edges, offsets = \
-            self._get_cumulative(edge_list, num_nodes, num_edges, offsets)
+    def __init__(
+        self,
+        edge_list=None,
+        edge_weight=None,
+        num_nodes=None,
+        num_edges=None,
+        num_relation=None,
+        offsets=None,
+        **kwargs
+    ):
+        (
+            edge_list,
+            num_nodes,
+            num_edges,
+            num_cum_nodes,
+            num_cum_edges,
+            offsets,
+        ) = self._get_cumulative(edge_list, num_nodes, num_edges, offsets)
 
         if offsets is None:
             offsets = self._get_offsets(num_nodes, num_edges, num_cum_nodes)
@@ -861,8 +1023,10 @@ class PackedGraph(Graph):
 
         num_node = num_nodes.sum()
         if (edge_list[:, :2] >= num_node).any():
-            raise ValueError("Sum of `num_nodes` is %d, but found %d in `edge_list`" %
-                             (num_node, edge_list[:, :2].max()))
+            raise ValueError(
+                "Sum of `num_nodes` is %d, but found %d in `edge_list`"
+                % (num_node, edge_list[:, :2].max())
+            )
 
         self._offsets = offsets
         self.num_nodes = num_nodes
@@ -870,17 +1034,26 @@ class PackedGraph(Graph):
         self.num_cum_nodes = num_cum_nodes
         self.num_cum_edges = num_cum_edges
 
-        super(PackedGraph, self).__init__(edge_list, edge_weight=edge_weight, num_node=num_node,
-                                          num_relation=num_relation, **kwargs)
+        super(PackedGraph, self).__init__(
+            edge_list,
+            edge_weight=edge_weight,
+            num_node=num_node,
+            num_relation=num_relation,
+            **kwargs
+        )
 
-    def _get_offsets(self, num_nodes=None, num_edges=None, num_cum_nodes=None, num_cum_edges=None):
+    def _get_offsets(
+        self, num_nodes=None, num_edges=None, num_cum_nodes=None, num_cum_edges=None
+    ):
         if num_nodes is None:
             num_cum_nodes_shifted = tf.concat(
-                [tf.zeros(1, dtype=tf.dtypes.int64), num_cum_nodes[:-1]])
+                [tf.zeros(1, dtype=tf.dtypes.int64), num_cum_nodes[:-1]]
+            )
             num_nodes = num_cum_nodes - num_cum_nodes_shifted
         if num_edges is None:
             num_cum_edges_shifted = tf.concat(
-                [tf.zeros(1, dtype=tf.dtypes.int64), num_cum_edges[:-1]])
+                [tf.zeros(1, dtype=tf.dtypes.int64), num_cum_edges[:-1]]
+            )
             num_edges = num_cum_edges - num_cum_edges_shifted
         if num_cum_nodes is None:
             num_cum_nodes = num_nodes.cumsum(0)
@@ -902,15 +1075,26 @@ class PackedGraph(Graph):
         graph2graph = graph2graph[graph_index]
 
         num_graph = graph2graph[-1] + 1
-        num_nodes = tf.tensor_scatter_nd_add(graph.num_nodes, graph2graph, shape=num_graph)
-        num_edges = tf.tensor_scatter_nd_add(graph.num_edges, graph2graph, shape=num_graph)
+        num_nodes = tf.tensor_scatter_nd_add(
+            graph.num_nodes, graph2graph, shape=num_graph
+        )
+        num_edges = tf.tensor_scatter_nd_add(
+            graph.num_edges, graph2graph, shape=num_graph
+        )
         offsets = self._get_offsets(num_nodes, num_edges)
 
         data_dict, meta_dict = graph.data_mask(exclude="graph")
 
-        return type(self)(graph.edge_list, edge_weight=graph.edge_weight, num_nodes=num_nodes,
-                          num_edges=num_edges, num_relation=graph.num_relation, offsets=offsets,
-                          meta_dict=meta_dict, **data_dict)
+        return type(self)(
+            graph.edge_list,
+            edge_weight=graph.edge_weight,
+            num_nodes=num_nodes,
+            num_edges=num_edges,
+            num_relation=graph.num_relation,
+            offsets=offsets,
+            meta_dict=meta_dict,
+            **data_dict
+        )
 
     def unpack(self):
         """
@@ -937,16 +1121,22 @@ class PackedGraph(Graph):
     def _check_attribute(self, key, value):
         if self._meta_context == "node":
             if len(value) != self.num_node:
-                raise ValueError("Expect node attribute `%s` to have shape (%d, *), but found %s" %
-                                 (key, self.num_node, value.shape))
+                raise ValueError(
+                    "Expect node attribute `%s` to have shape (%d, *), but found %s"
+                    % (key, self.num_node, value.shape)
+                )
         elif self._meta_context == "edge":
             if len(value) != self.num_edge:
-                raise ValueError("Expect edge attribute `%s` to have shape (%d, *), but found %s" %
-                                 (key, self.num_edge, value.shape))
+                raise ValueError(
+                    "Expect edge attribute `%s` to have shape (%d, *), but found %s"
+                    % (key, self.num_edge, value.shape)
+                )
         elif self._meta_context == "graph":
             if len(value) != self.batch_size:
-                raise ValueError("Expect graph attribute `%s` to have shape (%d, *), but found %s" %
-                                 (key, self.batch_size, value.shape))
+                raise ValueError(
+                    "Expect graph attribute `%s` to have shape (%d, *), but found %s"
+                    % (key, self.batch_size, value.shape)
+                )
         return
 
     def unpack_data(self, data, type="auto"):
@@ -960,21 +1150,35 @@ class PackedGraph(Graph):
         """
         if type == "auto":
             if self.num_node == self.num_edge:
-                raise ValueError("Ambiguous type. Please specify either `node` or `edge`")
+                raise ValueError(
+                    "Ambiguous type. Please specify either `node` or `edge`"
+                )
             if len(data) == self.num_node:
                 type = "node"
             elif len(data) == self.num_edge:
                 type = "edge"
             else:
-                raise ValueError("Graph has %d nodes and %d edges, but data has %d entries" %
-                                 (self.num_node, self.num_edge, len(data)))
+                raise ValueError(
+                    "Graph has %d nodes and %d edges, but data has %d entries"
+                    % (self.num_node, self.num_edge, len(data))
+                )
         data_list = []
         if type == "node":
             for i in range(self.batch_size):
-                data_list.append(data[self.num_cum_nodes[i] - self.num_nodes[i]: self.num_cum_nodes[i]])
+                data_list.append(
+                    data[
+                        self.num_cum_nodes[i]
+                        - self.num_nodes[i] : self.num_cum_nodes[i]
+                    ]
+                )
         elif type == "edge":
             for i in range(self.batch_size):
-                data_list.append(data[self.num_cum_edges[i] - self.num_edges[i]: self.num_cum_edges[i]])
+                data_list.append(
+                    data[
+                        self.num_cum_edges[i]
+                        - self.num_edges[i] : self.num_cum_edges[i]
+                    ]
+                )
 
         return data_list
 
@@ -1000,10 +1204,16 @@ class PackedGraph(Graph):
             shape[0] = count
             data_dict[k] = v.repeat(shape)
 
-        return type(self)(edge_list, edge_weight=self.edge_weight.repeat(count),
-                          num_nodes=self.num_nodes.repeat(count), num_edges=self.num_edges.repeat(count),
-                          num_relation=self.num_relation, offsets=offsets,
-                          meta_dict=self.meta_dict, **data_dict)
+        return type(self)(
+            edge_list,
+            edge_weight=self.edge_weight.repeat(count),
+            num_nodes=self.num_nodes.repeat(count),
+            num_edges=self.num_edges.repeat(count),
+            num_relation=self.num_relation,
+            offsets=offsets,
+            meta_dict=self.meta_dict,
+            **data_dict
+        )
 
     def repeat_interleave(self, repeats):
         """
@@ -1049,7 +1259,9 @@ class PackedGraph(Graph):
         index = tf.concat([index, index[cum_repeats_shifted]])
         value = tf.concat([num_nodes, -self.num_nodes[graph_mask]])
         mask = index < num_edge
-        pack_offsets = tf.tensor_scatter_nd_add(value[mask], index[mask], shape=num_edge)
+        pack_offsets = tf.tensor_scatter_nd_add(
+            value[mask], index[mask], shape=num_edge
+        )
         pack_offsets = pack_offsets.cumsum(0)
         edge_list = self.edge_list[edge_index]
         edge_list[:, :2] += pack_offsets.unsqueeze(-1)
@@ -1057,9 +1269,16 @@ class PackedGraph(Graph):
 
         data_dict, meta_dict = self.data_mask(node_index, edge_index, graph_index)
 
-        return type(self)(edge_list, edge_weight=self.edge_weight[edge_index],
-                          num_nodes=num_nodes, num_edges=num_edges, num_relation=self.num_relation, offsets=offsets,
-                          meta_dict=meta_dict, **data_dict)
+        return type(self)(
+            edge_list,
+            edge_weight=self.edge_weight[edge_index],
+            num_nodes=num_nodes,
+            num_edges=num_edges,
+            num_relation=self.num_relation,
+            offsets=offsets,
+            meta_dict=meta_dict,
+            **data_dict
+        )
 
     def get_item(self, index):
         """
@@ -1069,15 +1288,25 @@ class PackedGraph(Graph):
         Returns:
             Graph
         """
-        node_index = slice(self.num_cum_nodes[index] - self.num_nodes[index], self.num_cum_nodes[index])
-        edge_index = slice(self.num_cum_edges[index] - self.num_edges[index], self.num_cum_edges[index])
+        node_index = slice(
+            self.num_cum_nodes[index] - self.num_nodes[index], self.num_cum_nodes[index]
+        )
+        edge_index = slice(
+            self.num_cum_edges[index] - self.num_edges[index], self.num_cum_edges[index]
+        )
         graph_index = index
         edge_list = self.edge_list[edge_index].clone()
         edge_list[:, :2] -= self._offsets[edge_index].unsqueeze(-1)
         data_dict, meta_dict = self.data_mask(node_index, edge_index, graph_index)
 
-        graph = self.unpacked_type(edge_list, edge_weight=self.edge_weight[edge_index], num_node=self.num_nodes[index],
-                                   num_relation=self.num_relation, meta_dict=meta_dict, **data_dict)
+        graph = self.unpacked_type(
+            edge_list,
+            edge_weight=self.edge_weight[edge_index],
+            num_node=self.num_nodes[index],
+            num_relation=self.num_relation,
+            meta_dict=meta_dict,
+            **data_dict
+        )
         return graph
 
     def _get_cumulative(self, edge_list, num_nodes, num_edges, offsets):
@@ -1090,7 +1319,10 @@ class PackedGraph(Graph):
         num_edges = tf.convert_to_tensor(num_edges)
         num_edge = num_edges.sum()
         if num_edge != len(edge_list):
-            raise ValueError("Sum of `num_edges` is %d, but found %d edges in `edge_list`" % (num_edge, len(edge_list)))
+            raise ValueError(
+                "Sum of `num_edges` is %d, but found %d edges in `edge_list`"
+                % (num_edge, len(edge_list))
+            )
         num_cum_edges = num_edges.cumsum(0)
 
         if offsets is None:
@@ -1102,7 +1334,11 @@ class PackedGraph(Graph):
         if num_nodes is None:
             num_nodes = []
             for num_edge, num_cum_edge in zip(num_edges, num_cum_edges):
-                num_nodes.append(self._maybe_num_node(_edge_list[num_cum_edge - num_edge: num_cum_edge]))
+                num_nodes.append(
+                    self._maybe_num_node(
+                        _edge_list[num_cum_edge - num_edge : num_cum_edge]
+                    )
+                )
         num_nodes = tf.convert_to_tensor(num_nodes)
         num_cum_nodes = num_nodes.cumsum(0)
 
@@ -1112,13 +1348,24 @@ class PackedGraph(Graph):
         x = tf.zeros(num_cum_xs[-1], dtype=tf.dtypes.int64)
         x[index] = 1
         num_cum_indexes = x.cumsum(0)
-        num_cum_indexes = tf.concat([tf.zeros(1, dtype=tf.dtypes.int64), num_cum_indexes])
+        num_cum_indexes = tf.concat(
+            [tf.zeros(1, dtype=tf.dtypes.int64), num_cum_indexes]
+        )
         new_num_cum_xs = num_cum_indexes[num_cum_xs]
-        new_num_cum_xs_shifted = tf.concat([tf.zeros(1, dtype=tf.dtypes.int64), new_num_cum_xs[:-1]])
+        new_num_cum_xs_shifted = tf.concat(
+            [tf.zeros(1, dtype=tf.dtypes.int64), new_num_cum_xs[:-1]]
+        )
         new_num_xs = new_num_cum_xs - new_num_cum_xs_shifted
         return new_num_xs
 
-    def data_mask(self, node_index=None, edge_index=None, graph_index=None, include=None, exclude=None):
+    def data_mask(
+        self,
+        node_index=None,
+        edge_index=None,
+        graph_index=None,
+        include=None,
+        exclude=None,
+    ):
         data_dict, meta_dict = self.data_by_meta(include, exclude)
         for k, v in data_dict.items():
             if meta_dict[k] == "node" and node_index is not None:
@@ -1222,9 +1469,16 @@ class PackedGraph(Graph):
         else:
             data_dict, meta_dict = self.data_mask(edge_index=edge_index)
 
-        return type(self)(edge_list[edge_index], edge_weight=self.edge_weight[edge_index], num_nodes=num_nodes,
-                          num_edges=num_edges, num_relation=self.num_relation, offsets=offsets[edge_index],
-                          meta_dict=meta_dict, **data_dict)
+        return type(self)(
+            edge_list[edge_index],
+            edge_weight=self.edge_weight[edge_index],
+            num_nodes=num_nodes,
+            num_edges=num_edges,
+            num_relation=self.num_relation,
+            offsets=offsets[edge_index],
+            meta_dict=meta_dict,
+            **data_dict
+        )
 
     def edge_mask(self, index):
         """
@@ -1238,9 +1492,16 @@ class PackedGraph(Graph):
         data_dict, meta_dict = self.data_mask(edge_index=index)
         num_edges = self._get_num_xs(index, self.num_cum_edges)
 
-        return type(self)(self.edge_list[index], edge_weight=self.edge_weight[index], num_nodes=self.num_nodes,
-                          num_edges=num_edges, num_relation=self.num_relation, offsets=self._offsets[index],
-                          meta_dict=meta_dict, **data_dict)
+        return type(self)(
+            self.edge_list[index],
+            edge_weight=self.edge_weight[index],
+            num_nodes=self.num_nodes,
+            num_edges=num_edges,
+            num_relation=self.num_relation,
+            offsets=self._offsets[index],
+            meta_dict=meta_dict,
+            **data_dict
+        )
 
     def graph_mask(self, index, compact=False):
         """
@@ -1288,9 +1549,16 @@ class PackedGraph(Graph):
             data_dict, meta_dict = self.data_mask(node_index, edge_index, index)
         else:
             data_dict, meta_dict = self.data_mask(edge_index=edge_index)
-        return type(self)(edge_list[edge_index], edge_weight=self.edge_weight[edge_index], num_nodes=num_nodes,
-                          num_edges=num_edges, num_relation=self.num_relation, offsets=offsets,
-                          meta_dict=meta_dict, **data_dict)
+        return type(self)(
+            edge_list[edge_index],
+            edge_weight=self.edge_weight[edge_index],
+            num_nodes=num_nodes,
+            num_edges=num_edges,
+            num_relation=self.num_relation,
+            offsets=offsets,
+            meta_dict=meta_dict,
+            **data_dict
+        )
 
     def subbatch(self, index):
         """
@@ -1325,25 +1593,46 @@ class PackedGraph(Graph):
         index = tf.range(self.num_edge).unsqueeze(-1).expand(-1, 2).flatten()
         data_dict, meta_dict = self.data_mask(edge_index=index)
 
-        return type(self)(edge_list, edge_weight=self.edge_weight[index], num_nodes=self.num_nodes,
-                          num_edges=self.num_edges * 2, num_relation=num_relation, offsets=offsets,
-                          meta_dict=meta_dict, **data_dict)
+        return type(self)(
+            edge_list,
+            edge_weight=self.edge_weight[index],
+            num_nodes=self.num_nodes,
+            num_edges=self.num_edges * 2,
+            num_relation=num_relation,
+            offsets=offsets,
+            meta_dict=meta_dict,
+            **data_dict
+        )
 
     def detach(self):
         """
         Detach this packed graph.
         """
-        return type(self)(self.edge_list.detach(), edge_weight=self.edge_weight.detach(),
-                          num_nodes=self.num_nodes, num_edges=self.num_edges, num_relation=self.num_relation,
-                          offsets=self._offsets, meta_dict=self.meta_dict, **utils.detach(self.data_dict))
+        return type(self)(
+            self.edge_list.detach(),
+            edge_weight=self.edge_weight.detach(),
+            num_nodes=self.num_nodes,
+            num_edges=self.num_edges,
+            num_relation=self.num_relation,
+            offsets=self._offsets,
+            meta_dict=self.meta_dict,
+            **utils.detach(self.data_dict)
+        )
 
     def clone(self):
         """
         Clone this packed graph.
         """
-        return type(self)(self.edge_list.clone(), edge_weight=self.edge_weight.clone(),
-                          num_nodes=self.num_nodes, num_edges=self.num_edges, num_relation=self.num_relation,
-                          offsets=self._offsets, meta_dict=self.meta_dict, **utils.clone(self.data_dict))
+        return type(self)(
+            self.edge_list.clone(),
+            edge_weight=self.edge_weight.clone(),
+            num_nodes=self.num_nodes,
+            num_edges=self.num_edges,
+            num_relation=self.num_relation,
+            offsets=self._offsets,
+            meta_dict=self.meta_dict,
+            **utils.clone(self.data_dict)
+        )
 
     def cuda(self, *args, **kwargs):
         """
@@ -1355,9 +1644,16 @@ class PackedGraph(Graph):
         if edge_list is self.edge_list:
             return self
         else:
-            return type(self)(edge_list, edge_weight=self.edge_weight,
-                              num_nodes=self.num_nodes, num_edges=self.num_edges, num_relation=self.num_relation,
-                              offsets=self._offsets, meta_dict=self.meta_dict, **utils.cuda(self.data_dict, *args, **kwargs))
+            return type(self)(
+                edge_list,
+                edge_weight=self.edge_weight,
+                num_nodes=self.num_nodes,
+                num_edges=self.num_edges,
+                num_relation=self.num_relation,
+                offsets=self._offsets,
+                meta_dict=self.meta_dict,
+                **utils.cuda(self.data_dict, *args, **kwargs)
+            )
 
     def cpu(self):
         """
@@ -1369,21 +1665,38 @@ class PackedGraph(Graph):
         if edge_list is self.edge_list:
             return self
         else:
-            return type(self)(edge_list, edge_weight=self.edge_weight,
-                              num_nodes=self.num_nodes, num_edges=self.num_edges, num_relation=self.num_relation,
-                              offsets=self._offsets, meta_dict=self.meta_dict, **utils.cpu(self.data_dict))
+            return type(self)(
+                edge_list,
+                edge_weight=self.edge_weight,
+                num_nodes=self.num_nodes,
+                num_edges=self.num_edges,
+                num_relation=self.num_relation,
+                offsets=self._offsets,
+                meta_dict=self.meta_dict,
+                **utils.cpu(self.data_dict)
+            )
 
     def __repr__(self):
-        fields = ["batch_size=%d" % self.batch_size,
-                  "num_nodes=%s" % pretty.long_array(self.num_nodes.tolist()),
-                  "num_edges=%s" % pretty.long_array(self.num_edges.tolist())]
+        fields = [
+            "batch_size=%d" % self.batch_size,
+            "num_nodes=%s" % pretty.long_array(self.num_nodes.tolist()),
+            "num_edges=%s" % pretty.long_array(self.num_edges.tolist()),
+        ]
         if self.num_relation is not None:
             fields.append("num_relation=%d" % self.num_relation)
         if self.device.type != "cpu":
             fields.append("device='%s'" % self.device)
         return "%s(%s)" % (self.__class__.__name__, ", ".join(fields))
 
-    def visualize(self, titles=None, save_file=None, figure_size=(3, 3), layout="spring", num_row=None, num_col=None):
+    def visualize(
+        self,
+        titles=None,
+        save_file=None,
+        figure_size=(3, 3),
+        layout="spring",
+        num_row=None,
+        num_col=None,
+    ):
         """
         Visualize the packed graphs with matplotlib.
         Parameters:
@@ -1401,7 +1714,9 @@ class PackedGraph(Graph):
         """
         if titles is None:
             graph = self.get_item(0)
-            titles = ["%s %d" % (type(graph).__name__, i) for i in range(self.batch_size)]
+            titles = [
+                "%s %d" % (type(graph).__name__, i) for i in range(self.batch_size)
+            ]
         if num_col is None:
             if num_row is None:
                 num_col = math.ceil(self.batch_size ** 0.5)
@@ -1439,8 +1754,11 @@ def cat(graphs):
     pack_num_edges = tf.stack([graph.num_edge for graph in graphs])
     pack_num_cum_edges = pack_num_edges.cumsum(0)
     graph_index = pack_num_cum_edges < len(edge_list)
-    pack_offsets = tf.tensor_scatter_nd_add(pack_num_nodes[graph_index], pack_num_cum_edges[graph_index],
-                               shape=len(edge_list))
+    pack_offsets = tf.tensor_scatter_nd_add(
+        pack_num_nodes[graph_index],
+        pack_num_cum_edges[graph_index],
+        shape=len(edge_list),
+    )
     pack_offsets = pack_offsets.cumsum(0)
 
     edge_list[:, :2] += pack_offsets.unsqueeze(-1)
@@ -1463,6 +1781,13 @@ def cat(graphs):
     for k in keys:
         data_dict[k] = tf.concat([graph.data_dict[k] for graph in graphs])
 
-    return type(graphs[0])(edge_list, edge_weight=edge_weight,
-                           num_nodes=num_nodes, num_edges=num_edges, num_relation=num_relation, offsets=offsets,
-                           meta_dict=meta_dict, **data_dict)
+    return type(graphs[0])(
+        edge_list,
+        edge_weight=edge_weight,
+        num_nodes=num_nodes,
+        num_edges=num_edges,
+        num_relation=num_relation,
+        offsets=offsets,
+        meta_dict=meta_dict,
+        **data_dict
+    )

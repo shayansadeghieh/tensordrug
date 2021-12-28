@@ -4,5 +4,6 @@
     "/Users/shayansadeghieh/Desktop/tensordrug/tensordrugvenv/lib/python3.8/site-packages"
   ],
   "python.pythonPath": "/Users/shayansadeghieh/Desktop/tensordrug/tensordrugvenv/bin/python3.8",
-  "editor.defaultFormatter": "esbenp.prettier-vscode"
+  "editor.defaultFormatter": "ms-python.python",
+  "python.formatting.provider": "black"
 }

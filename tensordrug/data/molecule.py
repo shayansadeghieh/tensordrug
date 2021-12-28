@@ -27,7 +27,20 @@ class Molecule(Graph):
     """
 
     bond2id = {"SINGLE": 0, "DOUBLE": 1, "TRIPLE": 2, "AROMATIC": 3}
-    atom2valence = {1: 1, 5: 3, 6: 4, 7: 3, 8: 2, 9: 1, 14: 4, 15: 5, 16: 6, 17: 1, 35: 1, 53: 7}
+    atom2valence = {
+        1: 1,
+        5: 3,
+        6: 4,
+        7: 3,
+        8: 2,
+        9: 1,
+        14: 4,
+        15: 5,
+        16: 6,
+        17: 1,
+        35: 1,
+        53: 7,
+    }
     bond2valence = [1, 2, 3, 1.5]
     id2bond = {v: k for k, v in bond2id.items()}
     empty_mol = Chem.MolFromSmiles("")
@@ -35,9 +48,20 @@ class Molecule(Graph):
     dummy_atom = dummy_mol.GetAtomWithIdx(0)
     dummy_bond = dummy_mol.GetBondWithIdx(0)
 
-    def __init__(self, edge_list=None, atom_type=None, bond_type=None, formal_charge=None, explicit_hs=None,
-                 chiral_tag=None, radical_electrons=None, atom_map=None, bond_stereo=None, stereo_atoms=None,
-                 **kwargs):
+    def __init__(
+        self,
+        edge_list=None,
+        atom_type=None,
+        bond_type=None,
+        formal_charge=None,
+        explicit_hs=None,
+        chiral_tag=None,
+        radical_electrons=None,
+        atom_map=None,
+        bond_stereo=None,
+        stereo_atoms=None,
+        **kwargs
+    ):
         if "num_relation" not in kwargs:
             kwargs["num_relation"] = len(self.bond2id)
         super(Molecule, self).__init__(edge_list=edge_list, **kwargs)
@@ -71,16 +95,16 @@ class Molecule(Graph):
             raise ValueError("`bond_type` should be provided")
 
         atom_type = tf.convert_to_tensor(atom_type, dtype=tf.dtypes.int64)
-        bond_type = tf.convert_to_tensor(bond_type, dtype=torch.long)
+        bond_type = tf.convert_to_tensor(bond_type, dtype=tf.dtypes.int64)
         return atom_type, bond_type
 
     def _standarize_attribute(self, attribute, size):
         if attribute is not None:
-            attribute = tf.convert_to_tensor(attribute, dtype=torch.long)
+            attribute = tf.convert_to_tensor(attribute, dtype=tf.dtypes.int64)
         else:
-            if isinstance(size, torch.Tensor):
+            if isinstance(size, tf.Tensor):
                 size = size.tolist()
-            attribute = torch.zeros(size, dtype=torch.long)
+            attribute = tf.zeros(size, dtype=tf.dtypes.int64)
         return attribute
 
     @classmethod
@@ -93,8 +117,10 @@ class Molecule(Graph):
 
     def _check_no_stereo(self):
         if (self.bond_stereo > 0).any():
-            warnings.warn("Try to apply masks on molecules with stereo bonds. This may produce invalid molecules. "
-                          "To discard stereo information, call `mol.bond_stereo[:] = 0` before applying masks.")
+            warnings.warn(
+                "Try to apply masks on molecules with stereo bonds. This may produce invalid molecules. "
+                "To discard stereo information, call `mol.bond_stereo[:] = 0` before applying masks."
+            )
 
     def _maybe_num_node(self, edge_list):
         if len(edge_list):
@@ -103,8 +129,15 @@ class Molecule(Graph):
             return 0
 
     @classmethod
-    def from_smiles(cls, smiles, node_feature="default", edge_feature="default", graph_feature=None,
-                    with_hydrogen=False, kekulize=False):
+    def from_smiles(
+        cls,
+        smiles,
+        node_feature="default",
+        edge_feature="default",
+        graph_feature=None,
+        with_hydrogen=False,
+        kekulize=False,
+    ):
         """
         Create a molecule from a SMILES string.
         Parameters:
@@ -123,11 +156,20 @@ class Molecule(Graph):
         if mol is None:
             raise ValueError("Invalid SMILES `%s`" % smiles)
 
-        return cls.from_molecule(mol, node_feature, edge_feature, graph_feature, with_hydrogen, kekulize)
+        return cls.from_molecule(
+            mol, node_feature, edge_feature, graph_feature, with_hydrogen, kekulize
+        )
 
     @classmethod
-    def from_molecule(cls, mol, node_feature="default", edge_feature="default", graph_feature=None,
-                      with_hydrogen=False, kekulize=False):
+    def from_molecule(
+        cls,
+        mol,
+        node_feature="default",
+        edge_feature="default",
+        graph_feature=None,
+        with_hydrogen=False,
+        kekulize=False,
+    ):
         """
         Create a molecule from a RDKit object.
         Parameters:
@@ -161,7 +203,9 @@ class Molecule(Graph):
         radical_electrons = []
         atom_map = []
         _node_feature = []
-        atoms = [mol.GetAtomWithIdx(i) for i in range(mol.GetNumAtoms())] + [cls.dummy_atom]
+        atoms = [mol.GetAtomWithIdx(i) for i in range(mol.GetNumAtoms())] + [
+            cls.dummy_atom
+        ]
         for atom in atoms:
             atom_type.append(atom.GetAtomicNum())
             formal_charge.append(atom.GetFormalCharge())
@@ -174,14 +218,14 @@ class Molecule(Graph):
                 func = R.get("features.atom.%s" % name)
                 feature += func(atom)
             _node_feature.append(feature)
-        atom_type = torch.tensor(atom_type)[:-1]
-        atom_map = torch.tensor(atom_map)[:-1]
-        formal_charge = torch.tensor(formal_charge)[:-1]
-        explicit_hs = torch.tensor(explicit_hs)[:-1]
-        chiral_tag = torch.tensor(chiral_tag)[:-1]
-        radical_electrons = torch.tensor(radical_electrons)[:-1]
+        atom_type = tf.convert_to_tensor(atom_type)[:-1]
+        atom_map = tf.convert_to_tensor(atom_map)[:-1]
+        formal_charge = tf.convert_to_tensor(formal_charge)[:-1]
+        explicit_hs = tf.convert_to_tensor(explicit_hs)[:-1]
+        chiral_tag = tf.convert_to_tensor(chiral_tag)[:-1]
+        radical_electrons = tf.convert_to_tensor(radical_electrons)[:-1]
         if len(node_feature) > 0:
-            _node_feature = torch.tensor(_node_feature)[:-1]
+            _node_feature = tf.convert_to_tensor(_node_feature)[:-1]
         else:
             _node_feature = None
 
@@ -190,7 +234,9 @@ class Molecule(Graph):
         bond_stereo = []
         stereo_atoms = []
         _edge_feature = []
-        bonds = [mol.GetBondWithIdx(i) for i in range(mol.GetNumBonds())] + [cls.dummy_bond]
+        bonds = [mol.GetBondWithIdx(i) for i in range(mol.GetNumBonds())] + [
+            cls.dummy_bond
+        ]
         for bond in bonds:
             type = str(bond.GetBondType())
             stereo = bond.GetStereo()
@@ -215,11 +261,11 @@ class Molecule(Graph):
                 feature += func(bond)
             _edge_feature += [feature, feature]
         edge_list = edge_list[:-2]
-        bond_type = torch.tensor(bond_type)[:-2]
-        bond_stereo = torch.tensor(bond_stereo)[:-2]
-        stereo_atoms = torch.tensor(stereo_atoms)[:-2]
+        bond_type = tf.convert_to_tensor(bond_type)[:-2]
+        bond_stereo = tf.convert_to_tensor(bond_stereo)[:-2]
+        stereo_atoms = tf.convert_to_tensor(stereo_atoms)[:-2]
         if len(edge_feature) > 0:
-            _edge_feature = torch.tensor(_edge_feature)[:-2]
+            _edge_feature = tf.convert_to_tensor(_edge_feature)[:-2]
         else:
             _edge_feature = None
 
@@ -228,17 +274,28 @@ class Molecule(Graph):
             func = R.get("features.molecule.%s" % name)
             _graph_feature += func(mol)
         if len(graph_feature) > 0:
-            _graph_feature = torch.tensor(_graph_feature)
+            _graph_feature = tf.convert_to_tensor(_graph_feature)
         else:
             _graph_feature = None
 
         num_relation = len(cls.bond2id) - 1 if kekulize else len(cls.bond2id)
-        return cls(edge_list, atom_type, bond_type,
-                   formal_charge=formal_charge, explicit_hs=explicit_hs,
-                   chiral_tag=chiral_tag, radical_electrons=radical_electrons, atom_map=atom_map,
-                   bond_stereo=bond_stereo, stereo_atoms=stereo_atoms,
-                   node_feature=_node_feature, edge_feature=_edge_feature, graph_feature=_graph_feature,
-                   num_node=mol.GetNumAtoms(), num_relation=num_relation)
+        return cls(
+            edge_list,
+            atom_type,
+            bond_type,
+            formal_charge=formal_charge,
+            explicit_hs=explicit_hs,
+            chiral_tag=chiral_tag,
+            radical_electrons=radical_electrons,
+            atom_map=atom_map,
+            bond_stereo=bond_stereo,
+            stereo_atoms=stereo_atoms,
+            node_feature=_node_feature,
+            edge_feature=_edge_feature,
+            graph_feature=_graph_feature,
+            num_node=mol.GetNumAtoms(),
+            num_relation=num_relation,
+        )
 
     def to_smiles(self, isomeric=True, atom_map=True, canonical=False):
         """
@@ -336,13 +393,20 @@ class Molecule(Graph):
         radical_electrons = data_dict.pop("radical_electrons")
         pos_nitrogen = (self.atom_type == 7) & (self.explicit_valence > 3)
         formal_charge = pos_nitrogen.long()
-        explicit_hs = torch.zeros_like(explicit_hs)
-        radical_electrons = torch.zeros_like(radical_electrons)
+        explicit_hs = tf.zeros_like(explicit_hs)
+        radical_electrons = tf.zeros_like(radical_electrons)
 
-        return type(self)(self.edge_list, edge_weight=self.edge_weight,
-                          num_node=self.num_node, num_relation=self.num_relation,
-                          formal_charge=formal_charge, explicit_hs=explicit_hs, radical_electrons=radical_electrons,
-                          meta_dict=self.meta_dict, **data_dict)
+        return type(self)(
+            self.edge_list,
+            edge_weight=self.edge_weight,
+            num_node=self.num_node,
+            num_relation=self.num_relation,
+            formal_charge=formal_charge,
+            explicit_hs=explicit_hs,
+            radical_electrons=radical_electrons,
+            meta_dict=self.meta_dict,
+            **data_dict
+        )
 
     def to_scaffold(self, chirality=False):
         """
@@ -353,7 +417,9 @@ class Molecule(Graph):
             str
         """
         smiles = self.to_smiles()
-        scaffold = MurckoScaffold.MurckoScaffoldSmiles(smiles, includeChirality=chirality)
+        scaffold = MurckoScaffold.MurckoScaffoldSmiles(
+            smiles, includeChirality=chirality
+        )
         return scaffold
 
     def node_mask(self, index, compact=False):
@@ -366,7 +432,9 @@ class Molecule(Graph):
 
     def undirected(self, add_inverse=False):
         if add_inverse:
-            raise ValueError("Bonds are undirected relations, but `add_inverse` is specified")
+            raise ValueError(
+                "Bonds are undirected relations, but `add_inverse` is specified"
+            )
         return super(Molecule, self).undirected(add_inverse)
 
     @property
@@ -379,17 +447,21 @@ class Molecule(Graph):
         """Number of bonds."""
         return self.num_edge
 
-    @utils.cached_property
+    @decorator.cached_property
     def explicit_valence(self):
-        bond2valence = torch.tensor(self.bond2valence)
-        explicit_valence = scatter_add(bond2valence[self.edge_list[:, 2]], self.edge_list[:, 0], dim_size=self.num_node)
+        bond2valence = tf.convert_to_tensor(self.bond2valence)
+        explicit_valence = scatter_add(
+            bond2valence[self.edge_list[:, 2]],
+            self.edge_list[:, 0],
+            dim_size=self.num_node,
+        )
         return explicit_valence.round().long()
 
-    @utils.cached_property
+    @decorator.cached_property
     def is_valid(self):
         """A coarse implementation of valence check."""
         # TODO: cross-check by any domain expert
-        atom2valence = torch.tensor(float("nan")).repeat(constant.NUM_ATOM)
+        atom2valence = tf.convert_to_tensor(float("nan")).repeat(constant.NUM_ATOM)
         for k, v in self.atom2valence:
             atom2valence[k] = v
         atom2valence = tf.convert_to_tensor(atom2valence)
@@ -398,25 +470,31 @@ class Molecule(Graph):
         # special case for nitrogen
         pos_nitrogen = (self.atom_type == 7) & (self.formal_charge == 1)
         max_atom_valence[pos_nitrogen] = 4
-        if torch.isnan(max_atom_valence).any():
-            index = torch.isnan(max_atom_valence).nonzero()[0]
-            raise ValueError("Fail to check valence. Unknown atom type %d" % self.atom_type[index])
+        if tf.match.is_nan(max_atom_valence).any():
+            index = tf.match.is_nan(max_atom_valence).nonzero()[0]
+            raise ValueError(
+                "Fail to check valence. Unknown atom type %d" % self.atom_type[index]
+            )
 
         is_valid = (self.explicit_valence <= max_atom_valence).all()
         return is_valid
 
-    @utils.cached_property
+    @decorator.cached_property
     def is_valid_rdkit(self):
         try:
             with utils.no_rdkit_log():
                 mol = self.to_molecule()
-                Chem.SanitizeMol(mol, sanitizeOps=Chem.SanitizeFlags.SANITIZE_PROPERTIES)
-            is_valid = torch.ones(1, dtype=torch.bool)
+                Chem.SanitizeMol(
+                    mol, sanitizeOps=Chem.SanitizeFlags.SANITIZE_PROPERTIES
+                )
+            is_valid = tf.ones(1, dtype=tf.dtypes.bool)
         except ValueError:
-            is_valid = torch.zeros(1, dtype=torch.bool)
+            is_valid = tf.zeros(1, dtype=tf.dtypes.bool)
         return is_valid
 
-    def visualize(self, title=None, save_file=None, figure_size=(3, 3), ax=None, atom_map=False):
+    def visualize(
+        self, title=None, save_file=None, figure_size=(3, 3), ax=None, atom_map=False
+    ):
         """
         Visualize this molecule with matplotlib.
         Parameters:
@@ -454,4 +532,3 @@ class Molecule(Graph):
         smiles = self.to_smiles(isomeric=False, atom_map=False, canonical=True)
         other_smiles = other.to_smiles(isomeric=False, atom_map=False, canonical=True)
         return smiles == other_smiles
-
