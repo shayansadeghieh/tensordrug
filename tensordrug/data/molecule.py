@@ -6,7 +6,9 @@ import tensorflow as tf
 
 from rdkit import Chem, RDLogger
 from rdkit.Chem.Scaffolds import MurckoScaffold
+from tensordrug.core.core import Registry as R
 from tensordrug.data.graph import Graph, PackedGraph
+from tensordrug.utils import decorator
 
 
 class Molecule(Graph):
