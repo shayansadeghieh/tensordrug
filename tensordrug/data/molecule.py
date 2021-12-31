@@ -209,6 +209,8 @@ class Molecule(Graph):
             cls.dummy_atom
         ]
         for atom in atoms:
+            print("this is atom")
+            print(atom)
             atom_type.append(atom.GetAtomicNum())
             formal_charge.append(atom.GetFormalCharge())
             explicit_hs.append(atom.GetNumExplicitHs())
@@ -217,6 +219,8 @@ class Molecule(Graph):
             atom_map.append(atom.GetAtomMapNum())
             feature = []
             for name in node_feature:
+                print("this is name")
+                print(name)
                 func = R.get("features.atom.%s" % name)
                 feature += func(atom)
             _node_feature.append(feature)
