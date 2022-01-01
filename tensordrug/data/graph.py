@@ -948,7 +948,7 @@ class Graph(_MetaContainer):
         if title is not None:
             ax.set_title(title)
 
-        edge_list = self.edge_list[:, :2].tolist()
+        edge_list = self.edge_list[:, :2].numpy().tolist()
         G = nx.DiGraph(edge_list)
         G.add_nodes_from(range(self.num_node))
         if hasattr(nx, "%s_layout" % layout):
@@ -961,7 +961,7 @@ class Graph(_MetaContainer):
             pos = func(G)
         nx.draw_networkx(G, pos, ax=ax)
         if self.num_relation:
-            edge_labels = self.edge_list[:, 2].tolist()
+            edge_labels = self.edge_list[:, 2].numpy().tolist()
             edge_labels = {tuple(e): l for e, l in zip(edge_list, edge_labels)}
             nx.draw_networkx_edge_labels(G, pos, edge_labels, ax=ax)
         ax.set_frame_on(False)
