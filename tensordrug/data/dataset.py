@@ -12,6 +12,7 @@ import torch
 from torch.utils import data as torch_data
 
 from tensordrug import core, data, utils
+from tensordrug.utils import decorator
 from tensordrug.utils import doc
 
 
@@ -184,7 +185,7 @@ class MoleculeDataset(torch_data.Dataset, core.Configurable):
         """Number of different bond types."""
         return len(self.bond_types)
 
-    @utils.cached_property
+    @decorator.cached_property
     def atom_types(self):
         """All atom types."""
         atom_types = set()
@@ -202,7 +203,7 @@ class MoleculeDataset(torch_data.Dataset, core.Configurable):
 
         return sorted(atom_types)
 
-    @utils.cached_property
+    @decorator.cached_property
     def bond_types(self):
         """All bond types."""
         bond_types = set()
@@ -300,7 +301,7 @@ class ReactionDataset(MoleculeDataset, core.Configurable):
         """Number of different bond types."""
         return len(self.bond_types)
 
-    @utils.cached_property
+    @decorator.cached_property
     def atom_types(self):
         """All atom types."""
         atom_types = set()
@@ -309,7 +310,7 @@ class ReactionDataset(MoleculeDataset, core.Configurable):
                 atom_types.update(graph.atom_type.tolist())
         return sorted(atom_types)
 
-    @utils.cached_property
+    @decorator.cached_property
     def bond_types(self):
         """All bond types."""
         bond_types = set()
