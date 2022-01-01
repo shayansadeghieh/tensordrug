@@ -1,8 +1,8 @@
 import os
 
-from torchdrug import data, utils
-from torchdrug.core import Registry as R
-from torchdrug.utils import doc
+from tensordrug import data, utils
+from tensordrug.core import Registry as R
+from tensordrug.utils import doc
 
 
 @R.register("datasets.Tox21")
@@ -24,8 +24,20 @@ class Tox21(data.MoleculeDataset):
 
     url = "http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/tox21.csv.gz"
     md5 = "2882d69e70bba0fec14995f26787cc25"
-    target_fields = ["NR-AR", "NR-AR-LBD", "NR-AhR", "NR-Aromatase", "NR-ER", "NR-ER-LBD", "NR-PPAR-gamma",
-                     "SR-ARE", "SR-ATAD5", "SR-HSE", "SR-MMP", "SR-p53"]
+    target_fields = [
+        "NR-AR",
+        "NR-AR-LBD",
+        "NR-AhR",
+        "NR-Aromatase",
+        "NR-ER",
+        "NR-ER-LBD",
+        "NR-PPAR-gamma",
+        "SR-ARE",
+        "SR-ATAD5",
+        "SR-HSE",
+        "SR-MMP",
+        "SR-p53",
+    ]
 
     def __init__(self, path, verbose=1, **kwargs):
         path = os.path.expanduser(path)
@@ -36,5 +48,10 @@ class Tox21(data.MoleculeDataset):
         zip_file = utils.download(self.url, path, md5=self.md5)
         csv_file = utils.extract(zip_file)
 
-        self.load_csv(csv_file, smiles_field="smiles", target_fields=self.target_fields,
-                      verbose=verbose, **kwargs)
+        self.load_csv(
+            csv_file,
+            smiles_field="smiles",
+            target_fields=self.target_fields,
+            verbose=verbose,
+            **kwargs
+        )

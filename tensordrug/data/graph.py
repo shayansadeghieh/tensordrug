@@ -968,9 +968,11 @@ class Graph(_MetaContainer):
 
         if is_root:
             if save_file:
-                fig.savefig(save_file)
+                fig.savefig("test.png")
+                plt.show(block=True)
             else:
                 fig.show()
+                plt.show(block=True)
 
 
 class PackedGraph(Graph):
@@ -1712,6 +1714,7 @@ class PackedGraph(Graph):
             .. _NetworkX graph layout:
                 https://networkx.github.io/documentation/stable/reference/drawing.html#module-networkx.drawing.layout
         """
+        print("IN VISUALIZE")
         if titles is None:
             graph = self.get_item(0)
             titles = [
@@ -1736,9 +1739,11 @@ class PackedGraph(Graph):
         fig.tight_layout()
 
         if save_file:
-            fig.savefig(save_file)
+            fig.savefig("test.png")
+            plt.show(block=True)
         else:
             fig.show()
+            plt.show(block=True)
 
 
 Graph.packed_type = PackedGraph
