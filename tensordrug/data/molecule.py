@@ -96,17 +96,17 @@ class Molecule(Graph):
         if bond_type is None:
             raise ValueError("`bond_type` should be provided")
 
-        atom_type = tf.convert_to_tensor(atom_type, dtype=tf.dtypes.int64)
-        bond_type = tf.convert_to_tensor(bond_type, dtype=tf.dtypes.int64)
+        atom_type = tf.convert_to_tensor(atom_type, dtype=tf.dtypes.int32)
+        bond_type = tf.convert_to_tensor(bond_type, dtype=tf.dtypes.int32)
         return atom_type, bond_type
 
     def _standarize_attribute(self, attribute, size):
         if attribute is not None:
-            attribute = tf.convert_to_tensor(attribute, dtype=tf.dtypes.int64)
+            attribute = tf.convert_to_tensor(attribute, dtype=tf.dtypes.int32)
         else:
             if isinstance(size, tf.Tensor):
                 size = size.tolist()
-            attribute = tf.zeros(size, dtype=tf.dtypes.int64)
+            attribute = tf.zeros(size, dtype=tf.dtypes.int32)
         return attribute
 
     @classmethod
@@ -336,15 +336,15 @@ class Molecule(Graph):
             rdchem.Mol
         """
         mol = Chem.RWMol()
-        atom_type = self.atom_type.tolist()
-        bond_type = self.bond_type.tolist()
-        formal_charge = self.formal_charge.tolist()
-        explicit_hs = self.explicit_hs.tolist()
-        chiral_tag = self.chiral_tag.tolist()
-        radical_electrons = self.radical_electrons.tolist()
-        atom_map = self.atom_map.tolist()
-        bond_stereo = self.bond_stereo.tolist()
-        stereo_atoms = self.stereo_atoms.tolist()
+        atom_type = self.atom_type.numpy().tolist()
+        bond_type = self.bond_type.numpy().tolist()
+        formal_charge = self.formal_charge.numpy().tolist()
+        explicit_hs = self.explicit_hs.numpy().tolist()
+        chiral_tag = self.chiral_tag.numpy().tolist()
+        radical_electrons = self.radical_electrons.numpy().tolist()
+        atom_map = self.atom_map.numpy().tolist()
+        bond_stereo = self.bond_stereo.numpy().tolist()
+        stereo_atoms = self.stereo_atoms.numpy().tolist()
         for i in range(self.num_node):
             atom = Chem.Atom(atom_type[i])
             atom.SetFormalCharge(formal_charge[i])
@@ -354,7 +354,7 @@ class Molecule(Graph):
             atom.SetNoImplicit(explicit_hs[i] > 0 or radical_electrons[i] > 0)
             atom.SetAtomMapNum(atom_map[i])
             mol.AddAtom(atom)
-        edge_list = self.edge_list.tolist()
+        edge_list = self.edge_list.numpy().tolist()
         for i in range(self.num_edge):
             h, t, type = edge_list[i]
             if h < t:
