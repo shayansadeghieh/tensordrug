@@ -1,8 +1,8 @@
 import os
 
-from torchdrug import data, utils
-from torchdrug.utils import doc
-from torchdrug.core import Registry as R
+from tensordrug import data, utils
+from tensordrug.utils import doc
+from tensordrug.core import Registry as R
 
 
 @R.register("datasets.BACE")
@@ -33,5 +33,10 @@ class BACE(data.MoleculeDataset):
 
         file_name = utils.download(self.url, path, md5=self.md5)
 
-        self.load_csv(file_name, smiles_field="mol", target_fields=self.target_fields,
-                      verbose=verbose, **kwargs)
+        self.load_csv(
+            file_name,
+            smiles_field="mol",
+            target_fields=self.target_fields,
+            verbose=verbose,
+            **kwargs
+        )
