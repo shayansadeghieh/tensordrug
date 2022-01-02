@@ -9,6 +9,7 @@ from rdkit.Chem.Scaffolds import MurckoScaffold
 from tensordrug.core.core import Registry as R
 from tensordrug.data.graph import Graph, PackedGraph
 from tensordrug.utils import decorator
+from tensordrug.data.rdkit import draw
 
 
 class Molecule(Graph):
@@ -529,6 +530,7 @@ class Molecule(Graph):
                 fig.savefig(save_file)
             else:
                 fig.show()
+                plt.show(block=True)
 
     def __eq__(self, other):
         smiles = self.to_smiles(isomeric=False, atom_map=False, canonical=True)
