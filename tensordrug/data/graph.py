@@ -134,7 +134,7 @@ class Graph(_MetaContainer):
                 device = edge_list.device
             else:
                 device = "cpu"
-            edge_list = tf.zeros(0, num_element, dtype=tf.dtypes.int64, device=device)
+            edge_list = tf.zeros([0, num_element], dtype=tf.dtypes.int64)
 
         if (edge_list.numpy() < 0).any():
             raise ValueError("`edge_list` should only contain non-negative indexes")
