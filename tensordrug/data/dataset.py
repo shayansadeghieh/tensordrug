@@ -12,6 +12,7 @@ import torch
 from torch.utils import data as torch_data
 
 from tensordrug import core, data, utils
+from tensordrug.utils import file, io
 from tensordrug.utils import decorator
 from tensordrug.utils import doc
 
@@ -102,9 +103,7 @@ class MoleculeDataset(torch_data.Dataset, core.Configurable):
             reader = csv.reader(fin)
             if verbose:
                 reader = iter(
-                    tqdm(
-                        reader, "Loading %s" % csv_file, utils.get_line_count(csv_file)
-                    )
+                    tqdm(reader, "Loading %s" % csv_file, file.get_line_count(csv_file))
                 )
             fields = next(reader)
             smiles = []
@@ -118,7 +117,7 @@ class MoleculeDataset(torch_data.Dataset, core.Configurable):
                     if field == smiles_field:
                         smiles.append(value)
                     elif target_fields is None or field in target_fields:
-                        value = utils.literal_eval(value)
+                        value = io.literal_eval(value)
                         if value == "":
                             value = math.nan
                         targets[field].append(value)
@@ -346,7 +345,7 @@ class NodeClassificationDataset(torch_data.Dataset, core.Configurable):
             reader = csv.reader(fin, delimiter="\t")
             if verbose:
                 reader = tqdm(
-                    reader, "Loading %s" % node_file, utils.get_line_count(node_file)
+                    reader, "Loading %s" % node_file, file.get_line_count(node_file)
                 )
             for tokens in reader:
                 node_token = tokens[0]
@@ -355,7 +354,7 @@ class NodeClassificationDataset(torch_data.Dataset, core.Configurable):
                 inv_node_vocab[node_token] = len(inv_node_vocab)
                 if label_token not in inv_label_vocab:
                     inv_label_vocab[label_token] = len(inv_label_vocab)
-                feature = [utils.literal_eval(f) for f in feature_tokens]
+                feature = [io.literal_eval(f) for f in feature_tokens]
                 label = inv_label_vocab[label_token]
                 node_feature.append(feature)
                 node_label.append(label)
@@ -366,7 +365,7 @@ class NodeClassificationDataset(torch_data.Dataset, core.Configurable):
             reader = csv.reader(fin, delimiter="\t")
             if verbose:
                 reader = tqdm(
-                    reader, "Loading %s" % edge_file, utils.get_line_count(edge_file)
+                    reader, "Loading %s" % edge_file, file.get_line_count(edge_file)
                 )
             for tokens in reader:
                 h_token, t_token = tokens
@@ -559,7 +558,7 @@ class KnowledgeGraphDataset(torch_data.Dataset, core.Configurable):
                 reader = csv.reader(fin, delimiter="\t")
                 if verbose:
                     reader = tqdm(
-                        reader, "Loading %s" % tsv_file, utils.get_line_count(tsv_file)
+                        reader, "Loading %s" % tsv_file, file.get_line_count(tsv_file)
                     )
 
                 num_sample = 0

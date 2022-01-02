@@ -1,6 +1,7 @@
 import os
 
 from tensordrug import data, utils
+from tensordrug.utils import file
 from tensordrug.core import Registry as R
 from tensordrug.utils import doc
 
@@ -45,8 +46,8 @@ class Tox21(data.MoleculeDataset):
             os.makedirs(path)
         self.path = path
 
-        zip_file = utils.download(self.url, path, md5=self.md5)
-        csv_file = utils.extract(zip_file)
+        zip_file = file.download(self.url, path, md5=self.md5)
+        csv_file = file.extract(zip_file)
 
         self.load_csv(
             csv_file,

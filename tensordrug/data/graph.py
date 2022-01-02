@@ -1714,7 +1714,6 @@ class PackedGraph(Graph):
             .. _NetworkX graph layout:
                 https://networkx.github.io/documentation/stable/reference/drawing.html#module-networkx.drawing.layout
         """
-        print("IN VISUALIZE")
         if titles is None:
             graph = self.get_item(0)
             titles = [
