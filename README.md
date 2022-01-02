@@ -46,3 +46,11 @@ tf.Tensor(
  tf.Tensor([6 6 6 6 6 6], shape=(6,), dtype=int32)
  c1ccccc1
 ```
+You can import datasets in the exact same way as Torchdrug:
+```
+# Import and preprocess datasets
+dataset = Tox21("./tox21/")
+lengths = [int(0.8 * len(dataset)), int(0.1 * len(dataset))]
+lengths += [len(dataset) - sum(lengths)]
+
+```
