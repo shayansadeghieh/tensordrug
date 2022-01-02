@@ -1,8 +1,8 @@
 import os
 
-from torchdrug import data, utils
-from torchdrug.core import Registry as R
-from torchdrug.utils import doc
+from tensordrug import data, utils
+from tensordrug.core import Registry as R
+from tensordrug.utils import doc
 
 
 @R.register("datasets.ClinTox")
@@ -22,7 +22,9 @@ class ClinTox(data.MoleculeDataset):
         **kwargs
     """
 
-    url = "http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/clintox.csv.gz"
+    url = (
+        "http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/clintox.csv.gz"
+    )
     md5 = "db4f2df08be8ae92814e9d6a2d015284"
     target_fields = ["FDA_APPROVED", "CT_TOX"]
 
@@ -35,5 +37,10 @@ class ClinTox(data.MoleculeDataset):
         zip_file = utils.download(self.url, path, md5=self.md5)
         csv_file = utils.extract(zip_file)
 
-        self.load_csv(csv_file, smiles_field="smiles", target_fields=self.target_fields,
-                      verbose=verbose, **kwargs)
+        self.load_csv(
+            csv_file,
+            smiles_field="smiles",
+            target_fields=self.target_fields,
+            verbose=verbose,
+            **kwargs
+        )

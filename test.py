@@ -2,7 +2,7 @@ from tensordrug.data.graph import Graph
 from tensordrug.data.molecule import Molecule
 from tensordrug.core.core import Registry as R
 
-# from tensordrug import datasets
+from tensordrug.datasets import Tox21
 
 # Create graph that uses networkx
 edge_list = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0]]
@@ -16,8 +16,8 @@ graph.visualize()
 # print(mol.to_scaffold())
 
 # Import and preprocess datasets
-# dataset = datasets.Tox21()
-# dataset[0].visualize()
+dataset = Tox21()
+dataset[0].visualize(save_file=True)
 # lengths = [int(0.8 * len(dataset)), int(0.1 * len(dataset))]
 # lengths += [len(dataset) - sum(lengths)]
 

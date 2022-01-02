@@ -2,9 +2,9 @@ import os
 import csv
 from tqdm import tqdm
 
-from torchdrug import data, utils
-from torchdrug.core import Registry as R
-from torchdrug.utils import doc
+from tensordrug import data, utils
+from tensordrug.core import Registry as R
+from tensordrug.utils import doc
 
 
 @R.register("datasets.PubChem110m")
@@ -22,6 +22,7 @@ class PubChem110m(data.MoleculeDataset):
         verbose (int, optional): output verbose level
         **kwargs
     """
+
     # TODO: download path & md5. Is it the statistics right?
 
     target_fields = []
@@ -37,7 +38,9 @@ class PubChem110m(data.MoleculeDataset):
         with open(smiles_file, "r") as fin:
             reader = csv.reader(fin, delimiter="\t")
             if verbose:
-                reader = iter(tqdm(reader, "Loading %s" % path, utils.get_line_count(smiles_file)))
+                reader = iter(
+                    tqdm(reader, "Loading %s" % path, utils.get_line_count(smiles_file))
+                )
             smiles_list = []
 
             for values in reader:

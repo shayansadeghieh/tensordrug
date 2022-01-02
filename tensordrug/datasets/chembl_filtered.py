@@ -1,8 +1,8 @@
 import os
 
-from torchdrug import data, utils
-from torchdrug.core import Registry as R
-from torchdrug.utils import doc
+from tensordrug import data, utils
+from tensordrug.core import Registry as R
+from tensordrug.utils import doc
 
 
 @R.register("datasets.ChEMBLFiltered")
@@ -19,7 +19,7 @@ class ChEMBLFiltered(data.MoleculeDataset):
         **kwargs
     """
 
-    url = "https://zenodo.org/record/5528681/files/chembl_filtered_torchdrug.csv.gz"
+    url = "https://zenodo.org/record/5528681/files/chembl_filtered_tensordrug.csv.gz"
     md5 = "2fff04fecd6e697f28ebb127e8a37561"
 
     def __init__(self, path, verbose=1, **kwargs):
@@ -33,5 +33,10 @@ class ChEMBLFiltered(data.MoleculeDataset):
 
         self.target_fields = ["target_{}".format(i) for i in range(1310)]
 
-        self.load_csv(csv_file, smiles_field="smiles", target_fields=self.target_fields,
-                      verbose=verbose, **kwargs)
+        self.load_csv(
+            csv_file,
+            smiles_field="smiles",
+            target_fields=self.target_fields,
+            verbose=verbose,
+            **kwargs
+        )

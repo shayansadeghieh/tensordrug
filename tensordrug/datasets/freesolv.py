@@ -1,8 +1,8 @@
 import os
 
-from torchdrug import data, utils
-from torchdrug.core import Registry as R
-from torchdrug.utils import doc
+from tensordrug import data, utils
+from tensordrug.core import Registry as R
+from tensordrug.utils import doc
 
 
 @R.register("datasets.FreeSolv")
@@ -34,5 +34,10 @@ class FreeSolv(data.MoleculeDataset):
         zip_file = utils.download(self.url, self.path, md5=self.md5)
         csv_file = utils.extract(zip_file, "SAMPL.csv")
 
-        self.load_csv(csv_file, smiles_field="smiles", target_fields=self.target_fields,
-                      verbose=verbose, **kwargs)
+        self.load_csv(
+            csv_file,
+            smiles_field="smiles",
+            target_fields=self.target_fields,
+            verbose=verbose,
+            **kwargs
+        )

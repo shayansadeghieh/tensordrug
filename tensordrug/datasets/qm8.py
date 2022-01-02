@@ -7,10 +7,10 @@ from rdkit import Chem, RDLogger
 
 import torch
 
-from torchdrug import data, utils
-from torchdrug.data import feature
-from torchdrug.core import Registry as R
-from torchdrug.utils import doc
+from tensordrug import data, utils
+from tensordrug.data import feature
+from tensordrug.core import Registry as R
+from tensordrug.utils import doc
 
 
 @R.register("datasets.QM8")
@@ -33,10 +33,24 @@ class QM8(data.MoleculeDataset):
 
     url = "http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/gdb8.tar.gz"
     md5 = "b7e2a2c823c75b35c596f3013319c86e"
-    target_fields = ["E1-CC2", "E2-CC2", "f1-CC2", "f2-CC2",
-                     "E1-PBE0/def2SVP", "E2-PBE0/def2SVP", "f1-PBE0/def2SVP", "f2-PBE0/def2SVP",
-                     "E1-PBE0/def2TZVP", "E2-PBE0/def2TZVP", "f1-PBE0/def2TZVP", "f2-PBE0/def2TZVP",
-                     "E1-CAM", "E2-CAM", "f1-CAM", "f2-CAM"]
+    target_fields = [
+        "E1-CC2",
+        "E2-CC2",
+        "f1-CC2",
+        "f2-CC2",
+        "E1-PBE0/def2SVP",
+        "E2-PBE0/def2SVP",
+        "f1-PBE0/def2SVP",
+        "f2-PBE0/def2SVP",
+        "E1-PBE0/def2TZVP",
+        "E2-PBE0/def2TZVP",
+        "f1-PBE0/def2TZVP",
+        "f2-PBE0/def2TZVP",
+        "E1-CAM",
+        "E2-CAM",
+        "f1-CAM",
+        "f2-CAM",
+    ]
 
     def __init__(self, path, node_position=False, verbose=1, **kwargs):
         path = os.path.expanduser(path)
@@ -60,7 +74,12 @@ class QM8(data.MoleculeDataset):
                 for values in reader:
                     writer.writerow(values)
 
-        self.load_csv(csv_file2, smiles_field=None, target_fields=self.target_fields, verbose=verbose)
+        self.load_csv(
+            csv_file2,
+            smiles_field=None,
+            target_fields=self.target_fields,
+            verbose=verbose,
+        )
 
         with utils.no_rdkit_log():
             molecules = Chem.SDMolSupplier(sdf_file, True, True, False)
@@ -80,7 +99,9 @@ class QM8(data.MoleculeDataset):
             d = data.Molecule.from_molecule(mol, **kwargs)
             if node_position:
                 with d.node():
-                    d.node_position = torch.tensor([feature.atom_position(atom) for atom in mol.GetAtoms()])
+                    d.node_position = torch.tensor(
+                        [feature.atom_position(atom) for atom in mol.GetAtoms()]
+                    )
             self.data.append(d)
             for k in targets:
                 self.targets[k].append(targets[k][i])

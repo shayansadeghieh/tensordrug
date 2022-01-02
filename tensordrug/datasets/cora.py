@@ -1,7 +1,7 @@
 import os
 
-from torchdrug import data, utils
-from torchdrug.core import Registry as R
+from tensordrug import data, utils
+from tensordrug.core import Registry as R
 
 
 @R.register("datasets.Cora")
