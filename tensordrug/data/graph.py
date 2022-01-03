@@ -520,7 +520,7 @@ class Graph(_MetaContainer):
         if all([isinstance(axis_index, int) for axis_index in index]):
             return self.get_edge(index)
 
-        edge_list = self.edge_list.clone()
+        edge_list = tf.identity(self.edge_list)
         for i, axis_index in enumerate(index):
             axis_index = self._standarize_index(axis_index, self.num_node)
             mapping = -tf.ones(self.num_node, dtype=tf.dtypes.int64)
