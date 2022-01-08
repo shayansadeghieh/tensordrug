@@ -144,11 +144,12 @@ class Graph(_MetaContainer):
     def _standarize_edge_weight(self, edge_weight, edge_list):
         if edge_weight is not None:
             edge_weight = tf.convert_to_tensor(edge_weight, dtype=tf.dtypes.float32)
-            if len(edge_list) != len(edge_weight):
-                raise ValueError(
-                    "`edge_list` and `edge_weight` should be the same size, but found %d and %d"
-                    % (len(edge_list), len(edge_weight))
-                )
+            if np.shape(edge_weight.numpy()) is not None:
+                if len(edge_list) != np.shape(edge_weight.numpy())[0]:
+                    raise ValueError(
+                        "`edge_list` and `edge_weight` should be the same size, but found %d and %d"
+                        % (len(edge_list), np.shape(edge_weight.numpy())[0])
+                    )
         else:
             edge_weight = tf.ones(len(edge_list))
         return edge_weight
@@ -201,9 +202,10 @@ class Graph(_MetaContainer):
         else:
             index = tf.convert_to_tensor(index)
             if index.ndim == 0:
-                index = index.unsqueeze(0)
+                index = tf.expand_dims(index, axis=0)
             if index.dtype == tf.dtypes.bool:
-                index = index.nonzero().squeeze(-1)
+                index = index.numpy().nonzero()[0]
+                index = tf.convert_to_tensor(index, dtype=tf.dtypes.int32)
             else:
                 index = tf.convert_to_tensor(index, dtype=tf.dtypes.int32)
             max_index = -1 if len(index) == 0 else index.numpy().max().item()
@@ -520,13 +522,16 @@ class Graph(_MetaContainer):
         if all([isinstance(axis_index, int) for axis_index in index]):
             return self.get_edge(index)
 
-        edge_list = tf.identity(self.edge_list)
+        edge_list = self.edge_list.numpy()
         for i, axis_index in enumerate(index):
-            axis_index = self._standarize_index(axis_index, self.num_node)
-            mapping = -tf.ones(self.num_node, dtype=tf.dtypes.int64)
-            mapping[axis_index] = axis_index
-            edge_list[:, i] = mapping[edge_list[:, i]]
-        edge_index = (edge_list >= 0).all(dim=-1)
+            updates = self._standarize_index(axis_index, self.num_node)
+            mapping = -np.ones(self.num_node, dtype=int)
+            axis_index = np.expand_dims(updates.numpy(), 1).tolist()
+            mapping_update = tf.tensor_scatter_nd_update(
+                list(mapping), axis_index, updates
+            )
+            edge_list[:, i] = mapping_update.numpy()[edge_list[:, i]]
+        edge_index = (edge_list >= 0).all(axis=-1)
 
         return self.edge_mask(edge_index)
 
@@ -564,7 +569,7 @@ class Graph(_MetaContainer):
             if meta_dict[k] == "node" and node_index is not None:
                 data_dict[k] = v[node_index]
             elif meta_dict[k] == "edge" and edge_index is not None:
-                data_dict[k] = v[edge_index]
+                data_dict[k] = v.numpy()[edge_index.numpy()]
             elif meta_dict[k] == "graph" and graph_index is not None:
                 data_dict[k] = v.unsqueeze(0)[graph_index]
         return data_dict, meta_dict
@@ -637,8 +642,8 @@ class Graph(_MetaContainer):
         data_dict, meta_dict = self.data_mask(edge_index=index)
 
         return type(self)(
-            self.edge_list[index],
-            edge_weight=self.edge_weight[index],
+            self.edge_list.numpy()[index],
+            edge_weight=self.edge_weight.numpy()[index],
             num_node=self.num_node,
             num_relation=self.num_relation,
             meta_dict=meta_dict,

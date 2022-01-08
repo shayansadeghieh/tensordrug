@@ -119,7 +119,7 @@ class Molecule(Graph):
         return option
 
     def _check_no_stereo(self):
-        if (self.bond_stereo > 0).any():
+        if (self.bond_stereo.numpy() > 0).any():
             warnings.warn(
                 "Try to apply masks on molecules with stereo bonds. This may produce invalid molecules. "
                 "To discard stereo information, call `mol.bond_stereo[:] = 0` before applying masks."
