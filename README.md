@@ -1,9 +1,5 @@
 # tensordrug :turtle:
-This is a tensorflow implementation of torchdrug (https://github.com/DeepGraphLearning/torchdrug). 
-
-Removing barriers to nice packages (such as the package not being written in your deep learning framework of choice) is important. Less barriers means more solutions.
-
-You use this package the same way as Torchdrug. The only difference being the underlying code behind the library has been converted from torch to tensorflow.
+tensorflow implementation of torchdrug (https://github.com/DeepGraphLearning/torchdrug). Wanted to learn more about drug discovery. 
 
 ```
 from tensordrug.data.graph import Graph
